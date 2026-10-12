@@ -954,6 +954,7 @@ function abrirDetalle(id) {
     const selOff = set ? c.sel.length - selDisp : 0;
     return `${head(esc(p.nombre))}<div class="det">
       <div class="det-photo">${fotoHTML(p, { cls: 'big' + (set ? ' inter' : ''), sel: c.sel })}
+        ${set && !p.foto ? `<div class="pz-list">${p.piezas.map((z, i) => `<button type="button" class="pzchip${z.vendida ? ' off' : ''}${c.sel.includes(z.id) ? ' on' : ''}" data-act="selPz" data-id="${z.id}">#${i + 1}${z.nombre ? ' ' + esc(z.nombre) : ''}</button>`).join('')}</div>` : ''}
         ${set ? `<p class="hint">👆 Toca las piezas para seleccionarlas · ${c.sel.length} seleccionada(s)</p>` : ''}</div>
       <div><div class="row-btns" style="margin:0"><span class="badge st-${estado(p)}">${set ? `${st} de ${p.piezas.length} piezas` : `${st} en stock`}</span>
           ${p.categoria ? `<span class="tag">${esc(p.categoria)}</span>` : ''}${p.codigo ? `<span class="tag">#${esc(p.codigo)}</span>` : ''}${set ? '<span class="tag">🧩 Set</span>' : ''}</div>
@@ -1078,6 +1079,7 @@ const ACT = {
   addInd: () => { const c = ctx(); if (agregarCarrito(S.productos.get(c.id), null, c.qty)) go('vender'); },
   addSel: () => { const c = ctx(); if (agregarCarrito(S.productos.get(c.id), c.sel)) go('vender'); },
   addSet: () => { if (agregarCarrito(S.productos.get(ctx().id))) go('vender'); },
+  selPz: a => { const s = ctx().sel, id = a.dataset.id; s.includes(id) ? s.splice(s.indexOf(id), 1) : s.push(id); drawSheet(); },
   selTodo: () => { const c = ctx(); c.sel = c.sel.length ? [] : S.productos.get(c.id).piezas.map(z => z.id); drawSheet(); },
   marcarPz: async a => {
     const c = ctx(), v = a.dataset.v === '1', p = S.productos.get(c.id);

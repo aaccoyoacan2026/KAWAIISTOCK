@@ -360,6 +360,8 @@ const CFG_KEY = 'ks_cfg';
 const cfg = Object.assign({ tienda: 'Kawaii Stock', avatar: 'mika', margen: 40, modo: FIREBASE_CONFIG ? 'firebase' : 'local', fb: null },
   JSON.parse(localStorage.getItem(CFG_KEY) || '{}'));
 cfg.fb = cfg.fb || FIREBASE_CONFIG;
+// Con la configuración escrita en el código, la nube manda salvo que el usuario haya elegido otro modo en Ajustes.
+if (FIREBASE_CONFIG && !cfg.modoManual) { cfg.modo = 'firebase'; cfg.fb = FIREBASE_CONFIG; }
 const saveCfg = () => localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
 
 const S = {
@@ -1224,7 +1226,7 @@ const ACT = {
   avatar: a => { cfg.avatar = a.dataset.v; saveCfg(); render(); say(`¡Hola! Soy ${NOMBRES_AV[cfg.avatar]} ✨`); },
   modo: a => { cfg.modo = a.dataset.v; $$('[data-act=modo]').forEach(b => b.classList.toggle('on', b === a)); $('#fbBox').hidden = cfg.modo !== 'firebase'; },
   guardarModo: () => {
-    try { if (cfg.modo === 'firebase') cfg.fb = parseFbCfg($('#fbCfg').value); saveCfg(); location.reload(); }
+    try { if (cfg.modo === 'firebase') cfg.fb = parseFbCfg($('#fbCfg').value); cfg.modoManual = true; saveCfg(); location.reload(); }
     catch (e) { toast('Configuración inválida: ' + e.message, 'err'); }
   },
   logout: async () => { await FB.logout(); toast('Sesión cerrada'); go('inicio'); },

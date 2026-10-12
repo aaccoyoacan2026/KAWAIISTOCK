@@ -224,6 +224,28 @@ body.nologin .nav{display:none}
 .cart{display:grid;gap:14px}
 @media (min-width:860px),(orientation:landscape) and (min-width:640px){.cart{grid-template-columns:1.2fr 1fr;align-items:start}.cart>*{grid-column:1}.cart .cobro{position:sticky;top:76px;grid-row:1/span 2;grid-column:2}}
 .res{display:grid;gap:8px;margin-top:10px;max-height:300px;overflow:auto}
+.res.grid{max-height:none;overflow:visible;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:10px}
+.res .empty{grid-column:1/-1}
+.crop-wrap{position:fixed;inset:0;z-index:65;display:flex;flex-direction:column;gap:8px;background:#1a0b33;color:#fff;padding:max(12px,env(safe-area-inset-top)) 12px calc(12px + var(--safe-b))}
+.crop-wrap[hidden]{display:none}
+.crop-head{display:grid;gap:2px;text-align:center}
+.crop-head small{color:#d9c8ff;font-weight:700}
+.crop-head .chips{justify-content:safe center}
+.crop-wrap .btn,.crop-wrap .chip:not(.on){color:var(--ink)}
+.crop-foot .ghost{background:transparent;color:#fff!important;border-color:#fff}
+.crop-stage{flex:1;min-height:0;display:grid;place-items:center;overflow:hidden}
+.crop-in{position:relative;line-height:0}
+.crop-in img{display:block;max-width:calc(100vw - 24px);max-height:calc(100vh - 200px);user-select:none;-webkit-user-drag:none;pointer-events:none}
+.crop-box{position:absolute;border:2.5px solid #fff;box-shadow:0 0 0 9999px rgba(20,8,45,.65);touch-action:none;cursor:move;
+  background:linear-gradient(#fff7 0 0) 33.33% 0/1px 100% no-repeat,linear-gradient(#fff7 0 0) 66.66% 0/1px 100% no-repeat,
+             linear-gradient(#fff7 0 0) 0 33.33%/100% 1px no-repeat,linear-gradient(#fff7 0 0) 0 66.66%/100% 1px no-repeat}
+.crop-box i{position:absolute;width:30px;height:30px;border:5px solid var(--pink)}
+.crop-box i[data-h=nw]{left:-7px;top:-7px;border-right:0;border-bottom:0;cursor:nwse-resize}
+.crop-box i[data-h=ne]{right:-7px;top:-7px;border-left:0;border-bottom:0;cursor:nesw-resize}
+.crop-box i[data-h=sw]{left:-7px;bottom:-7px;border-right:0;border-top:0;cursor:nesw-resize}
+.crop-box i[data-h=se]{right:-7px;bottom:-7px;border-left:0;border-top:0;cursor:nwse-resize}
+.crop-box span{position:absolute;left:50%;top:6px;transform:translateX(-50%);background:var(--pink);border:2px solid var(--ink);border-radius:99px;padding:2px 9px;font:800 .7rem/1.4 var(--f1);white-space:nowrap;pointer-events:none}
+.crop-foot{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .line{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:2px dashed var(--lilac)}
 .line:last-child{border:0}
 .line .thumb{width:62px;flex:none}
@@ -291,6 +313,11 @@ body.nologin .nav{display:none}
   <button data-go="ajustes"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>Ajustes</button>
 </nav>
 <div id="sheet" class="sheet-wrap"><div class="sheet-bg" data-act="cerrar"></div><div class="sheet" role="dialog" aria-modal="true"></div></div>
+<div id="crop" class="crop-wrap" hidden>
+  <div class="crop-head"><b>✂️ Ajusta la foto</b><small>Lo que quede dentro del recuadro es lo que se guardará</small><div class="chips" id="cropAsp"></div></div>
+  <div class="crop-stage"><div class="crop-in"><img id="cropImg" alt=""><div id="cropBox" class="crop-box"><i data-h="nw"></i><i data-h="ne"></i><i data-h="sw"></i><i data-h="se"></i><span>Área de la foto</span></div></div></div>
+  <div class="crop-foot"><button class="btn" data-crop="no">Cancelar</button><button class="btn ghost" data-crop="full">Foto completa</button><button class="btn pri" data-crop="ok">✂️ Recortar</button></div>
+</div>
 <div id="toast"></div>
 
 <script>
@@ -504,22 +531,66 @@ const Ops = {
 
 /* ---------- Imágenes ---------- */
 const cargarImg = src => new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = () => rej(new Error('No se pudo leer la imagen')); i.src = src; });
-async function procesarImagen(file) {
+async function procesarImagen(file, crop = { x: 0, y: 0, w: 1, h: 1 }) {
   const src = URL.createObjectURL(file);
   try {
     const img = await cargarImg(src);
     let max = 1100, q = .8, url = '', c;
     for (let k = 0; k < 7; k++) {   // comprime hasta ~330 KB para que quepa en un documento de Firestore
-      const sc = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const sx = crop.x * img.naturalWidth, sy = crop.y * img.naturalHeight, sw = crop.w * img.naturalWidth, sh = crop.h * img.naturalHeight;
+      const sc = Math.min(1, max / Math.max(sw, sh));
       c = document.createElement('canvas');
-      c.width = Math.round(img.naturalWidth * sc); c.height = Math.round(img.naturalHeight * sc);
-      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      c.width = Math.max(1, Math.round(sw * sc)); c.height = Math.max(1, Math.round(sh * sc));
+      c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height);
       url = c.toDataURL('image/jpeg', q);
       if (url.length < 450000) break;
       max *= .85; q = Math.max(.5, q - .06);
     }
     return { foto: url, ar: r2(c.width / c.height) };
   } finally { URL.revokeObjectURL(src); }
+}
+/* Recortador: devuelve {x,y,w,h} en fracciones de la imagen, o null si se cancela. */
+const ASPECTOS = [['1', '⬜ Cuadrada (tarjeta)'], ['0.75', '▯ 3:4'], ['1.3333', '▭ 4:3'], ['0', '✂️ Libre']];
+function recortar(file) {
+  return new Promise(resolve => {
+    const w = $('#crop'), img = $('#cropImg'), box = $('#cropBox'), src = URL.createObjectURL(file);
+    let f = { x: 0, y: 0, w: 1, h: 1 }, ar = 1, drag = null;
+    const dim = () => img.getBoundingClientRect();
+    const pinta = () => Object.assign(box.style, { left: f.x * 100 + '%', top: f.y * 100 + '%', width: f.w * 100 + '%', height: f.h * 100 + '%' });
+    const centra = () => {
+      const { width: W, height: H } = dim(); let bw = W * .92, bh = ar ? bw / ar : H * .92;
+      if (bh > H * .92) { bh = H * .92; if (ar) bw = bh * ar; }
+      f = { x: (W - bw) / 2 / W, y: (H - bh) / 2 / H, w: bw / W, h: bh / H }; pinta();
+    };
+    const chips = () => $('#cropAsp').innerHTML = ASPECTOS.map(([v, t]) => chip('cropAsp', v, t, +v === ar)).join('');
+    box.onpointerdown = e => {
+      const { width: W, height: H } = dim();
+      drag = { h: e.target.dataset.h || '', sx: e.clientX, sy: e.clientY, W, H, s: { x: f.x * W, y: f.y * H, w: f.w * W, h: f.h * H } };
+      box.setPointerCapture(e.pointerId); e.preventDefault();
+    };
+    box.onpointermove = e => {
+      if (!drag) return;
+      const { h, W, H, s } = drag, dx = e.clientX - drag.sx, dy = e.clientY - drag.sy, M = 40;
+      let r;
+      if (!h) r = { x: clamp(s.x + dx, 0, W - s.w), y: clamp(s.y + dy, 0, H - s.h), w: s.w, h: s.h };
+      else {
+        const L = h.includes('w'), T = h.includes('n'), ax = L ? s.x + s.w : s.x, ay = T ? s.y + s.h : s.y;
+        const px = (L ? s.x : s.x + s.w) + dx, py = (T ? s.y : s.y + s.h) + dy;
+        let bw = clamp(L ? ax - px : px - ax, M, L ? ax : W - ax), bh = clamp(T ? ay - py : py - ay, M, T ? ay : H - ay);
+        if (ar) { bh = bw / ar; const maxH = T ? ay : H - ay; if (bh > maxH) { bh = maxH; bw = bh * ar; } }
+        r = { x: L ? ax - bw : ax, y: T ? ay - bh : ay, w: bw, h: bh };
+      }
+      f = { x: r.x / W, y: r.y / H, w: r.w / W, h: r.h / H }; pinta();
+    };
+    box.onpointerup = box.onpointercancel = () => drag = null;
+    const fin = v => { w.hidden = true; URL.revokeObjectURL(src); img.removeAttribute('src'); resolve(v); };
+    w.onclick = e => {
+      const b = e.target.closest('[data-crop],[data-v]'); if (!b) return;
+      if (b.dataset.crop) return fin(b.dataset.crop === 'ok' ? { ...f } : b.dataset.crop === 'full' ? { x: 0, y: 0, w: 1, h: 1 } : null);
+      ar = +b.dataset.v; chips(); centra();
+    };
+    chips(); w.hidden = false; img.onload = centra; img.src = src;
+  });
 }
 function fotoHTML(p, { cls = '', sel = [] } = {}) {
   if (!p.foto) return `<div class="box ${cls}"><div class="nofoto">📦</div></div>`;
@@ -737,12 +808,13 @@ function filtrar(q) {
   q = q.trim().toLowerCase();
   return [...S.productos.values()].filter(p => !q || [p.nombre, p.codigo, p.categoria].some(x => String(x || '').toLowerCase().includes(q)));
 }
-function renderGrid() {
-  const ps = filtrar(S.q).filter(p => (!S.cat || p.categoria === S.cat) && (!S.est || estado(p) === S.est)).sort((a, b) => a.nombre.localeCompare(b.nombre));
-  $('#grid').innerHTML = ps.map(p => `<article class="card prod" data-act="ver" data-id="${p.id}">
+const cardHTML = (p, act = 'ver', precio = money(precioDe(p))) => `<article class="card prod" data-act="${act}" data-id="${p.id}">
       ${fotoHTML(p)}
       <span class="badge st-${estado(p)}">${esSet(p) ? `${stockDe(p)}/${p.piezas.length}` : stockDe(p)}</span>${esSet(p) ? '<span class="settag">SET</span>' : ''}
-      <div class="pinfo"><b>${esc(p.nombre)}</b><small>${esc(p.categoria || 'Sin categoría')}</small><div class="price">${money(precioDe(p))}</div></div></article>`).join('')
+      <div class="pinfo"><b>${esc(p.nombre)}</b><small>${esc(p.categoria || 'Sin categoría')}</small><div class="price">${precio}</div></div></article>`;
+function renderGrid() {
+  const ps = filtrar(S.q).filter(p => (!S.cat || p.categoria === S.cat) && (!S.est || estado(p) === S.est)).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  $('#grid').innerHTML = ps.map(p => cardHTML(p)).join('')
     || `<div class="empty" style="grid-column:1/-1">${mascota('lg')}<p>${S.productos.size ? 'No encontré productos con ese filtro 🔎' : '¡Tu tienda está vacía! Toca ＋ para agregar tu primer producto.'}</p></div>`;
 }
 
@@ -750,6 +822,7 @@ function vVender() {
   return `<div class="cart">
     <section class="card"><h3>🔎 Agregar productos</h3>
       <div class="search"><span>🔍</span><input id="qv" type="search" placeholder="Nombre o código…" autocomplete="off"></div>
+      <div class="chips" style="margin-top:8px">${[['grid', '▦ Cuadrícula'], ['lista', '☰ Lista']].map(([v, t]) => chip('vistaV', v, t, (cfg.vistaV || 'grid') === v)).join('')}</div>
       <div id="res" class="res"></div></section>
     <section class="card"><h3>🧾 Ticket</h3><div id="ticket"></div></section>
     <section class="card cobro"><h3>💰 Cobrar</h3>
@@ -764,9 +837,10 @@ function vVender() {
 }
 function mVender() { $('#qv').oninput = renderRes; renderRes(); renderTicket(); }
 function renderRes() {
-  const q = $('#qv')?.value || '';
-  const ps = filtrar(q).filter(p => stockDe(p) > 0).sort((a, b) => a.nombre.localeCompare(b.nombre)).slice(0, 30);
-  $('#res').innerHTML = ps.map(p => `<div class="mini" data-act="addRapido" data-id="${p.id}"><div class="thumb">${fotoHTML(p)}</div>
+  const q = $('#qv')?.value || '', grid = cfg.vistaV !== 'lista', res = $('#res');
+  const ps = filtrar(q).filter(p => stockDe(p) > 0).sort((a, b) => a.nombre.localeCompare(b.nombre)).slice(0, 60);
+  res.classList.toggle('grid', grid);
+  res.innerHTML = ps.map(p => grid ? cardHTML(p, 'addRapido', esSet(p) ? `${money(precioPieza(p, {}))} c/u` : money(precioDe(p))) : `<div class="mini" data-act="addRapido" data-id="${p.id}"><div class="thumb">${fotoHTML(p)}</div>
       <div><b>${esc(p.nombre)}</b><small>${esSet(p) ? `Set · ${stockDe(p)} piezas disp.` : `Stock ${stockDe(p)}`} · ${money(esSet(p) ? precioPieza(p, {}) : precioDe(p))}${esSet(p) ? ' c/u' : ''}</small></div>
       <span class="btn sm pri">${esSet(p) ? 'Elegir' : '＋'}</span></div>`).join('')
     || `<p class="empty">${S.productos.size ? 'Sin coincidencias con stock' : 'Primero agrega productos al inventario'}</p>`;
@@ -1007,9 +1081,10 @@ function abrirEditor(id) {
     $('#edForm', r).oninput = () => { leerForm(c.d, r); mgTxt(r, c.d); };
     mgTxt(r, c.d);
     $$('[data-foto]', r).forEach(i => i.onchange = async () => {
-      const f = i.files[0]; if (!f) return;
+      const f = i.files[0]; i.value = ''; if (!f) return;
+      const crop = await recortar(f); if (!crop) return;
       toast('Procesando foto… 📸');
-      try { Object.assign(c.d, await procesarImagen(f)); drawSheet(); say(esSet(c.d) ? '¡Linda foto! Ahora marca cada pieza 👆' : '¡Linda foto! 📸'); }
+      try { Object.assign(c.d, await procesarImagen(f, crop)); drawSheet(); say(esSet(c.d) ? '¡Linda foto! Ahora marca cada pieza 👆' : '¡Linda foto! 📸'); }
       catch (e) { toast(e.message, 'err'); }
     });
     bindPz(r, c);
@@ -1130,6 +1205,7 @@ const ACT = {
   vaciar: () => { if (S.carrito.length && confirm('¿Vaciar el ticket?')) { S.carrito = []; saveCart(); renderTicket(); } },
   metodo: a => { S.cobro.metodo = a.dataset.v; $$('[data-act=metodo]').forEach(b => b.classList.toggle('on', b === a)); },
   cobrar: a => cobrar(a),
+  vistaV: a => { cfg.vistaV = a.dataset.v; saveCfg(); $$('[data-act=vistaV]').forEach(b => b.classList.toggle('on', b === a)); renderRes(); },
   // ventas
   verVenta: a => abrirVenta(a.dataset.id),
   cancelarVenta: async a => {

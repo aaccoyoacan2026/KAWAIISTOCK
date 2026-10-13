@@ -178,6 +178,7 @@ body.nologin .nav{display:none}
 .prod .pinfo{padding:8px 2px 0}
 .prod .pinfo b{display:block;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .prod .price{font:400 1rem var(--f2);color:var(--pink);text-shadow:1px 1px 0 var(--ink)}
+.prod .price small{display:block;font:800 .78rem var(--f1);color:var(--purple);text-shadow:none}
 .prod .settag{position:absolute;top:13px;right:13px;background:var(--cyan);border:2px solid var(--ink);border-radius:99px;font:800 .7rem var(--f1);padding:2px 7px}
 .fab{position:fixed;z-index:20;right:18px;bottom:calc(var(--nav) + 18px + var(--safe-b));width:62px;height:62px;border-radius:50%;font-size:2rem;line-height:1;
   border:3px solid var(--ink);background:linear-gradient(135deg,var(--yellow),#ffa63f);box-shadow:var(--sh);cursor:pointer}
@@ -217,6 +218,24 @@ body.nologin .nav{display:none}
 .pzchip.off{background:#9a8fb0;text-decoration:line-through}
 .pzchip.on{background:var(--yellow);color:var(--ink)}
 .pz-panel{margin-top:8px;padding:10px;box-shadow:3px 3px 0 var(--ink)}
+.gal{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 4px}
+.gth{position:relative;flex:none;width:76px;aspect-ratio:1;border:2.5px solid var(--ink);border-radius:12px;overflow:hidden;background:#fff;cursor:pointer}
+.gth img{width:100%;height:100%;object-fit:cover;display:block}
+.gth.cover{border-color:var(--pink);box-shadow:0 0 0 3px var(--pink2)}
+.gth em{position:absolute;left:0;right:0;bottom:0;background:var(--pink);color:#fff;font:800 .6rem/1.7 var(--f1);font-style:normal;text-align:center}
+.gb{position:absolute;top:3px;width:26px;height:26px;border-radius:50%;border:2px solid var(--ink);background:#fff;font-size:.75rem;line-height:1;padding:0;cursor:pointer}
+.gb.star{left:3px}.gb.del{right:3px}
+#visor{position:fixed;inset:0;z-index:66;background:#1a0b33f2;display:grid;place-items:center;padding:56px 12px}
+#visor[hidden]{display:none}
+#visor img{max-width:100%;max-height:100%;border:3px solid #fff;border-radius:14px}
+#visor .x{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px}
+#visor .vn{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:2.5px solid var(--ink);background:#fff;font-size:1.4rem;font-weight:800;cursor:pointer}
+#visor .vn.prev{left:10px}#visor .vn.next{right:10px}
+#visor small{position:absolute;bottom:calc(14px + var(--safe-b));color:#fff;font-weight:800}
+.tk{display:grid;place-items:center;padding:4px 0 8px}
+.tk img{width:min(100%,380px);height:auto;filter:drop-shadow(4px 4px 0 var(--ink))}
+.check{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:.9rem;margin:4px 0 6px}
+.check input{width:22px;height:22px;margin:0;accent-color:var(--pink)}
 .slider{display:flex;align-items:center;gap:10px;margin-top:8px}
 .slider input{padding:0;border:0;box-shadow:none!important;accent-color:var(--pink)}
 
@@ -318,6 +337,7 @@ body.nologin .nav{display:none}
   <div class="crop-stage"><div class="crop-in"><img id="cropImg" alt=""><div id="cropBox" class="crop-box"><i data-h="nw"></i><i data-h="ne"></i><i data-h="sw"></i><i data-h="se"></i><span>Área de la foto</span></div></div></div>
   <div class="crop-foot"><button class="btn" data-crop="no">Cancelar</button><button class="btn ghost" data-crop="full">Foto completa</button><button class="btn pri" data-crop="ok">✂️ Recortar</button></div>
 </div>
+<div id="visor" hidden><img alt=""><button class="x" data-vis="cerrar" aria-label="Cerrar">✕</button><button class="vn prev" data-vis="-1" aria-label="Anterior">‹</button><button class="vn next" data-vis="1" aria-label="Siguiente">›</button><small></small></div>
 <div id="toast"></div>
 
 <script>
@@ -337,6 +357,10 @@ const FIREBASE_CONFIG = {
   appId: "1:148783175939:web:bc4df3c5c1c2b26d93f136"
 };
 const FIREBASE_SDK = '10.12.2';
+/* Para un SEGUNDO NEGOCIO en el mismo sitio de GitHub (otra carpeta), pon aquí un nombre corto, p. ej. 'negocio2'.
+   Así sus ajustes, ticket en curso y datos locales no se mezclan con los de esta tienda. */
+const NEGOCIO = '';
+const K = s => NEGOCIO ? `${s}_${NEGOCIO}` : s;
 
 /* ---------- Utilidades ---------- */
 const $ = (s, r = document) => r.querySelector(s);
@@ -356,7 +380,7 @@ const hoyISO = () => new Date().toISOString().slice(0, 10);
 const clean = o => JSON.parse(JSON.stringify(o));
 
 /* ---------- Configuración y estado ---------- */
-const CFG_KEY = 'ks_cfg';
+const CFG_KEY = K('ks_cfg');
 const cfg = Object.assign({ tienda: 'Kawaii Stock', avatar: 'mika', margen: 40, modo: FIREBASE_CONFIG ? 'firebase' : 'local', fb: null },
   JSON.parse(localStorage.getItem(CFG_KEY) || '{}'));
 cfg.fb = cfg.fb || FIREBASE_CONFIG;
@@ -366,11 +390,12 @@ const saveCfg = () => localStorage.setItem(CFG_KEY, JSON.stringify(cfg));
 
 const S = {
   productos: new Map(), ventas: [], view: 'inicio', q: '', cat: '', est: '', rango: 'hoy',
-  user: null, listo: false, fatal: '', sheet: null,
-  carrito: JSON.parse(localStorage.getItem('ks_cart') || '[]'),
+  user: null, listo: false, fatal: '', sheet: null, tienda: {}, galCache: new Map(),
+  carrito: JSON.parse(localStorage.getItem(K('ks_cart')) || '[]'),
   cobro: { desc: '', metodo: 'Efectivo', cliente: '', nota: '' }
 };
-const saveCart = () => { localStorage.setItem('ks_cart', JSON.stringify(S.carrito)); badge(); };
+const tiendaNombre = () => S.tienda.nombre || cfg.tienda || 'Kawaii Stock';
+const saveCart = () => { localStorage.setItem(K('ks_cart'), JSON.stringify(S.carrito)); badge(); };
 
 /* ---------- Reglas de producto ---------- */
 const esSet = p => p.tipo === 'set';
@@ -415,25 +440,35 @@ function onData(p, v) {
   if (S.view === 'inventario' && $('#grid')) renderGrid(); else if (S.view !== 'vender' || !$('#ticket')) render(); else { renderTicket(); renderRes(); }
   if (S.sheet?.live) drawSheet();
 }
+function setTienda(t) {
+  S.tienda = t || {};
+  if (S.tienda.nombre && S.tienda.nombre !== cfg.tienda) { cfg.tienda = S.tienda.nombre; saveCfg(); }
+  $('#storeName').textContent = tiendaNombre();
+  if (S.view === 'ajustes' && !document.activeElement?.dataset?.t) render();
+}
+let avisado = false;
+const avisoReglas = () => { if (!avisado) { avisado = true; toast('Actualiza las reglas de Firestore para fotos extra y ticket (ver README)', 'warn'); } };
+const errMsg = e => e.code === 'permission-denied' ? 'Sin permiso: actualiza las reglas de Firestore' : e.message;
 async function atomicMem(pids, fn, commit) {
   const prods = {};
   pids.forEach(id => { const p = S.productos.get(id); if (p) prods[id] = structuredClone(p); });
   return commit(fn(prods));
 }
 
+const STORES = ['productos', 'ventas', 'fotos', 'config'];
 const idb = {
   db: null,
   open() {
     return new Promise((res, rej) => {
-      const r = indexedDB.open('kawaii-stock', 1);
-      r.onupgradeneeded = () => ['productos', 'ventas'].forEach(s => r.result.createObjectStore(s, { keyPath: 'id' }));
+      const r = indexedDB.open(K('kawaii-stock'), 2);
+      r.onupgradeneeded = () => STORES.forEach(s => r.result.objectStoreNames.contains(s) || r.result.createObjectStore(s, { keyPath: 'id' }));
       r.onsuccess = () => { this.db = r.result; res(); };
       r.onerror = () => rej(r.error);
     });
   },
   run(fn) {
     return new Promise((res, rej) => {
-      const t = this.db.transaction(['productos', 'ventas'], 'readwrite');
+      const t = this.db.transaction(STORES, 'readwrite');
       fn(s => t.objectStore(s));
       t.oncomplete = res; t.onerror = t.onabort = () => rej(t.error || new Error('Error al guardar'));
     });
@@ -448,15 +483,17 @@ const idb = {
 
 const Local = {
   nombre: 'Local 💾',
-  async init() { await idb.open(); onData(await idb.all('productos'), await idb.all('ventas')); },
+  async init() { await idb.open(); setTienda((await idb.all('config')).find(c => c.id === 'tienda')); onData(await idb.all('productos'), await idb.all('ventas')); },
   async commit(puts, dels = []) {
     await idb.run(st => { puts.forEach(([s, o]) => st(s).put(clean(o))); dels.forEach(([s, id]) => st(s).delete(id)); });
     const m = { productos: new Map(S.productos), ventas: new Map(S.ventas.map(v => [v.id, v])) };
-    puts.forEach(([s, o]) => m[s].set(o.id, o)); dels.forEach(([s, id]) => m[s].delete(id));
+    puts.forEach(([s, o]) => s === 'config' ? setTienda(o) : m[s]?.set(o.id, o)); dels.forEach(([s, id]) => m[s]?.delete(id));
     onData([...m.productos.values()], [...m.ventas.values()]);
   },
   atomic(pids, fn) { return atomicMem(pids, fn, puts => this.commit(puts)); },
-  async borrarTodo() { await idb.run(st => ['productos', 'ventas'].forEach(s => st(s).clear())); onData([], []); }
+  async fotosDe(pid) { return (await idb.all('fotos')).filter(f => f.pid === pid); },
+  todasFotos() { return idb.all('fotos'); },
+  async borrarTodo() { await idb.run(st => STORES.forEach(s => st(s).clear())); setTienda({}); onData([], []); }
 };
 
 const FB = {
@@ -482,7 +519,14 @@ const FB = {
     const err = e => { console.error(e); toast(e.code === 'permission-denied' ? 'Sin permiso: revisa las reglas de Firestore' : 'Error de nube: ' + e.message, 'err'); };
     this.unsub.push(F.onSnapshot(F.collection(db, 'productos'), s => { p = s.docs.map(d => d.data()); emit(); }, err));
     this.unsub.push(F.onSnapshot(F.query(F.collection(db, 'ventas'), F.orderBy('fecha', 'desc'), F.limit(2000)), s => { v = s.docs.map(d => d.data()); emit(); }, err));
+    this.unsub.push(F.onSnapshot(F.doc(db, 'config', 'tienda'), s => setTienda(s.data()), e => e.code === 'permission-denied' ? avisoReglas() : console.error(e)));
   },
+  async leerFotos(q) {
+    try { return (await this.F.getDocs(q)).docs.map(d => d.data()); }
+    catch (e) { e.code === 'permission-denied' ? avisoReglas() : console.error(e); return []; }
+  },
+  fotosDe(pid) { const { F, db } = this; return this.leerFotos(F.query(F.collection(db, 'fotos'), F.where('pid', '==', pid))); },
+  todasFotos() { return this.leerFotos(this.F.collection(this.db, 'fotos')); },
   async commit(puts, dels = []) {
     const { F, db } = this;
     const ops = [...puts.map(([s, o]) => [b => b.set(F.doc(db, s, o.id), clean(o)), JSON.stringify(o).length]),
@@ -512,10 +556,17 @@ const FB = {
 };
 
 let DB = Local;
+/* Fotos adicionales: se guardan aparte (colección "fotos") para no rebasar el límite de 1 MB por producto. */
+const MAX_FOTOS = 8;
+async function galeria(pid) {
+  if (!S.galCache.has(pid)) S.galCache.set(pid, (await DB.fotosDe(pid)).sort((a, b) => a.t - b.t));
+  return S.galCache.get(pid);
+}
 const pidsDe = v => [...new Set(v.items.map(i => i.pid))];
 const Ops = {
-  guardar: p => DB.commit([['productos', p]]),
-  eliminar: id => DB.commit([], [['productos', id]]),
+  guardar: (p, put = [], del = []) => { S.galCache.delete(p.id); return DB.commit([['productos', p], ...put.map(f => ['fotos', f])], del.map(id => ['fotos', id])); },
+  eliminar: async id => { const fs = await galeria(id); S.galCache.delete(id); return DB.commit([], [['productos', id], ...fs.map(f => ['fotos', f.id])]); },
+  guardarTienda: t => DB.commit([['config', { ...t, id: 'tienda' }]]),
   vender: v => DB.atomic(pidsDe(v), prods => [...aplicarVenta(prods, v, -1), ['ventas', v]]),
   cancelar: v => DB.atomic(pidsDe(v), prods => [...aplicarVenta(prods, v, 1), ['ventas', { ...v, estado: 'cancelada', canceladaEn: Date.now() }]]),
   ajustar: (id, delta) => DB.atomic([id], prods => {
@@ -528,7 +579,8 @@ const Ops = {
     p.piezas.forEach(z => { if (ids.includes(z.id)) z.vendida = vendida; });
     p.stock = stockDe(p); p.actualizado = Date.now(); return [['productos', p]];
   }),
-  importar: d => DB.commit([...(d.productos || []).map(p => ['productos', p]), ...(d.ventas || []).map(v => ['ventas', v])])
+  importar: d => { S.galCache.clear(); return DB.commit([...(d.productos || []).map(p => ['productos', p]), ...(d.ventas || []).map(v => ['ventas', v]),
+    ...(d.fotos || []).map(f => ['fotos', f]), ...(d.config || []).map(c => ['config', c])]); }
 };
 
 /* ---------- Imágenes ---------- */
@@ -633,6 +685,17 @@ function descargar(blob, nombre) {
   document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
+/* ---------- Visor de fotos ---------- */
+function abrirVisor(fotos, i = 0) {
+  const w = $('#visor'), pinta = () => { $('img', w).src = fotos[i]; $('small', w).textContent = `${i + 1} / ${fotos.length}`; $$('.vn', w).forEach(b => b.hidden = fotos.length < 2); };
+  w.onclick = e => {
+    const v = e.target.closest('[data-vis]')?.dataset.vis;
+    if (v === 'cerrar' || e.target === w) w.hidden = true;
+    else if (v) { i = (i + +v + fotos.length) % fotos.length; pinta(); }
+  };
+  pinta(); w.hidden = false;
+}
+
 /* ---------- Mascotas anime (dibujos originales en SVG) ---------- */
 const INK = '#2a1650';
 const DEFS = `<defs><radialGradient id="irisG" cx=".5" cy=".3" r=".75"><stop offset="0" stop-color="#7cf3ff"/><stop offset=".55" stop-color="#7c3aed"/><stop offset="1" stop-color="#2a1650"/></radialGradient></defs>`;
@@ -735,8 +798,8 @@ addEventListener('popstate', () => closeSheet(true));
 const VIEWS = { inicio: vInicio, inventario: vInventario, vender: vVender, ventas: vVentas, ajustes: vAjustes };
 const MOUNTS = { inventario: mInventario, vender: mVender, ajustes: mAjustes };
 function render() {
-  $('#storeName').textContent = cfg.tienda || 'Kawaii Stock';
-  document.title = `${cfg.tienda || 'Kawaii Stock'} · Inventario`;
+  $('#storeName').textContent = tiendaNombre();
+  document.title = `${tiendaNombre()} · Inventario`;
   $('#modePill').textContent = DB.nombre + (navigator.onLine ? '' : ' · sin red');
   $('#modePill').classList.toggle('off', !navigator.onLine);
   $('#hdrMascot').innerHTML = mascota();
@@ -788,11 +851,11 @@ function vInicio() {
     </div>
     <section class="card"><h3>📈 Ventas · últimos 7 días</h3><div class="bars">${dias.map((t, i) =>
       `<div class="bar" title="${money(tot[i])}"><em>${tot[i] ? '$' + Math.round(tot[i]).toLocaleString('es-MX') : ''}</em><i class="${i === 6 ? 'today' : ''}" style="height:${tot[i] / max * 78}%"></i><small>${new Date(t).toLocaleDateString('es-MX', { weekday: 'short' }).slice(0, 3)}</small></div>`).join('')}</div></section>
-    <section class="card"><h3>⚠️ Por surtir</h3>${bajos.slice(0, 8).map(p => mini(p, estado(p) === 'agotado' ? 'Agotado' : `Quedan ${stockDe(p)}`)).join('') || '<p class="empty">Nada por surtir 🎉</p>'}</section>
     <section class="card"><h3>🏆 Más vendidos del mes</h3>${tops.map(([id, t], i) => {
       const p = S.productos.get(id);
       return p ? mini(p, `${t.cant} vendidos · ${money(t.imp)}`) : `<div class="mini"><div class="thumb"><div class="box"><div class="nofoto">${i + 1}</div></div></div><div><b>${esc(t.nombre)}</b><small>${t.cant} vendidos · ${money(t.imp)}</small></div></div>`;
     }).join('') || '<p class="empty">Aún sin ventas este mes</p>'}</section>
+    <section class="card"><h3>⚠️ Por surtir</h3>${bajos.slice(0, 8).map(p => mini(p, estado(p) === 'agotado' ? 'Agotado' : `Quedan ${stockDe(p)}`)).join('') || '<p class="empty">Nada por surtir 🎉</p>'}</section>
   </div>`;
 }
 
@@ -816,7 +879,7 @@ const cardHTML = (p, act = 'ver', precio = money(precioDe(p))) => `<article clas
       <div class="pinfo"><b>${esc(p.nombre)}</b><small>${esc(p.categoria || 'Sin categoría')}</small><div class="price">${precio}</div></div></article>`;
 function renderGrid() {
   const ps = filtrar(S.q).filter(p => (!S.cat || p.categoria === S.cat) && (!S.est || estado(p) === S.est)).sort((a, b) => a.nombre.localeCompare(b.nombre));
-  $('#grid').innerHTML = ps.map(p => cardHTML(p)).join('')
+  $('#grid').innerHTML = ps.map(p => cardHTML(p, 'ver', money(precioDe(p)) + (esSet(p) ? `<small>${money(precioPieza(p, {}))} c/u</small>` : ''))).join('')
     || `<div class="empty" style="grid-column:1/-1">${mascota('lg')}<p>${S.productos.size ? 'No encontré productos con ese filtro 🔎' : '¡Tu tienda está vacía! Toca ＋ para agregar tu primer producto.'}</p></div>`;
 }
 
@@ -912,7 +975,7 @@ async function cobrar(btn) {
   try {
     await Ops.vender(venta);
     S.carrito = []; S.cobro = { desc: '', metodo: S.cobro.metodo, cliente: '', nota: '' }; saveCart();
-    confeti(); render(); say(`¡Venta lograda! ${money(venta.total)} ✨`, 'happy', 4000);
+    confeti(); render(); say(`¡Venta lograda! ${money(venta.total)} ✨`, 'happy', 4000); abrirTicket(venta);
   } catch (e) { btn.disabled = false; toast(e.message, 'err'); say('Ups… revisa el ticket 😿', 'sad'); }
 }
 
@@ -946,16 +1009,116 @@ function abrirVenta(id) {
         <div><span>Costo</span><span>${money(v.costoTotal)}</span></div><div><span>Ganancia</span><span>${money(v.ganancia)}</span></div>
         <div class="big"><span>Total</span><span>${money(v.total)}</span></div></div>
       <p class="meta">💳 ${esc(v.metodo)}${v.cliente ? ' · 👤 ' + esc(v.cliente) : ''}${v.usuario ? ' · ✍️ ' + esc(v.usuario) : ''}</p>${v.nota ? `<p class="notas">${esc(v.nota)}</p>` : ''}
-      ${v.estado !== 'cancelada' ? '<div class="sh-foot"><button class="btn danger" data-act="cancelarVenta">↩️ Cancelar venta y devolver stock</button></div>' : ''}`;
+      <div class="sh-foot"><button class="btn" data-act="verTicket">🧾 Ver ticket</button>${v.estado !== 'cancelada' ? '<button class="btn danger" data-act="cancelarVenta">↩️ Cancelar venta y devolver stock</button>' : ''}</div>`;
   } });
 }
+/* ---------- Ticket digital (imagen) ---------- */
+const folio = v => 'KS-' + v.id.slice(-6).toUpperCase();
+const TCAMPOS = [['nombre', 'Nombre de la tienda', 'Kawaii Stock'], ['eslogan', 'Eslogan o giro', 'Figuras y coleccionables anime'],
+  ['direccion', 'Dirección', 'Calle, número, colonia, alcaldía'], ['telefono', 'Teléfono', '55 0000 0000'], ['whatsapp', 'WhatsApp', '55 0000 0000'],
+  ['redes', 'Redes sociales', '@mitienda'], ['rfc', 'RFC (opcional)', ''], ['mensaje', 'Mensaje al pie', '¡Gracias por tu compra! ✨']];
+async function ticketCanvas(v, t = S.tienda) {
+  await document.fonts?.ready;
+  const W = 576, P = 36, Z = 14, F = "'M PLUS Rounded 1c', sans-serif", FT = "'Mochiy Pop One', 'M PLUS Rounded 1c', sans-serif";
+  const INKc = '#2a1650', GRIS = '#6b5a8e', PINK = '#ff4fa3';
+  const c = document.createElement('canvas'); c.width = W; c.height = 5000;
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, 5000);
+  let y = Z + 26;
+  const fnt = (size, w = 500, f = F) => g.font = `${w} ${size}px ${f}`;
+  const wrap = (s, max) => {
+    const out = [];
+    String(s).split('\n').forEach(par => {
+      let l = '';
+      par.split(' ').forEach(w => { const tl = l ? l + ' ' + w : w; if (g.measureText(tl).width > max && l) { out.push(l); l = w; } else l = tl; });
+      out.push(l);
+    });
+    return out;
+  };
+  const linea = (s, { size = 22, w = 500, al = 'center', col = INKc, f = F, gap = 1.35 } = {}) => {
+    if (!s) return; fnt(size, w, f); g.fillStyle = col; g.textAlign = al; g.textBaseline = 'top';
+    wrap(s, W - 2 * P).forEach(l => { g.fillText(l, al === 'center' ? W / 2 : al === 'right' ? W - P : P, y); y += size * gap; });
+  };
+  const fila = (izq, der, { size = 22, w = 500, col = INKc, f = F } = {}) => {
+    fnt(size, w, f); g.fillStyle = col; g.textBaseline = 'top';
+    const dw = g.measureText(der).width, ls = wrap(izq, W - 2 * P - dw - 16);
+    g.textAlign = 'right'; g.fillText(der, W - P, y);
+    g.textAlign = 'left'; ls.forEach(l => { g.fillText(l, P, y); y += size * 1.35; });
+  };
+  const corte = () => { y += 8; g.strokeStyle = '#b9a8d6'; g.lineWidth = 2; g.setLineDash([10, 8]); g.beginPath(); g.moveTo(P, y); g.lineTo(W - P, y); g.stroke(); g.setLineDash([]); y += 18; };
+
+  const band = g.createLinearGradient(0, 0, W, 0); band.addColorStop(0, PINK); band.addColorStop(1, '#7c3aed');
+  g.fillStyle = band; g.fillRect(0, 0, W, Z + 10);
+  if (t.mascota !== false) {
+    try {
+      const svgTxt = (AVATARS[cfg.avatar] || AVATARS.mika).replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" ');
+      const im = await cargarImg('data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgTxt));
+      g.drawImage(im, (W - 130) / 2, y, 130, 130); y += 140;
+    } catch {}
+  }
+  linea(t.nombre || tiendaNombre(), { size: 38, w: 400, f: FT, col: PINK, gap: 1.25 });
+  linea(t.eslogan, { size: 21, w: 700, col: '#7c3aed' });
+  y += 4;
+  linea(t.direccion, { size: 19, col: GRIS });
+  linea([t.telefono && 'Tel. ' + t.telefono, t.whatsapp && 'WhatsApp ' + t.whatsapp].filter(Boolean).join(' · '), { size: 19, col: GRIS });
+  linea(t.rfc && 'RFC ' + t.rfc, { size: 19, col: GRIS });
+  corte();
+  fila('Folio', folio(v), { size: 20, w: 800 });
+  fila('Fecha', fechaTxt(v.fecha), { size: 20 });
+  if (v.usuario) fila('Atendió', v.usuario.split('@')[0], { size: 20 });
+  if (v.cliente) fila('Cliente', v.cliente, { size: 20 });
+  corte();
+  v.items.forEach(it => {
+    linea(it.nombre, { size: 22, w: 800, al: 'left', gap: 1.3 });
+    fila(`${it.cant} × ${money(it.precio)}${it.piezasNum?.length ? ' · pzas #' + it.piezasNum.join(', #') : ''}`, money(it.importe), { size: 20, col: GRIS });
+    y += 6;
+  });
+  corte();
+  fila('Subtotal', money(v.subtotal), { size: 21 });
+  if (v.descuento) fila('Descuento', '−' + money(v.descuento), { size: 21 });
+  y += 6; fila('TOTAL', money(v.total), { size: 34, w: 400, f: FT, col: PINK }); y += 2;
+  fila('Pago', v.metodo, { size: 20, col: GRIS });
+  corte();
+  linea(t.mensaje || '¡Gracias por tu compra!', { size: 23, w: 800, col: '#7c3aed' });
+  linea(t.redes, { size: 20, col: GRIS });
+  linea('✦ ✧ ✦', { size: 22, col: PINK });
+  const H = y + 18 + Z;
+  g.fillStyle = band; g.fillRect(0, H - Z - 10, W, Z + 10);
+  if (v.estado === 'cancelada') {
+    g.save(); g.translate(W / 2, H / 2); g.rotate(-0.4); fnt(78, 900); g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.strokeStyle = '#ff2d55'; g.lineWidth = 5; g.strokeText('CANCELADA', 0, 0); g.fillStyle = 'rgba(255,45,85,.18)'; g.fillText('CANCELADA', 0, 0); g.restore();
+  }
+  // Recorte con bordes de "papel" en zigzag
+  const o = document.createElement('canvas'); o.width = W; o.height = H;
+  const x = o.getContext('2d'), n = 24, st = W / n;
+  x.beginPath(); x.moveTo(0, Z);
+  for (let i = 0; i < n; i++) { x.lineTo(i * st + st / 2, 0); x.lineTo((i + 1) * st, Z); }
+  x.lineTo(W, H - Z);
+  for (let i = n; i > 0; i--) { x.lineTo(i * st - st / 2, H); x.lineTo((i - 1) * st, H - Z); }
+  x.closePath(); x.clip(); x.drawImage(c, 0, 0);
+  return o;
+}
+async function abrirTicket(v, t) {
+  if (!v) return;
+  let url;
+  try { url = (await ticketCanvas(v, t)).toDataURL('image/png'); } catch (e) { return toast('No pude generar el ticket: ' + e.message, 'err'); }
+  openSheet({ live: false, ctx: { v, url }, html() {
+    return `${head('🧾 Ticket ' + folio(this.ctx.v))}<div class="tk"><img src="${this.ctx.url}" alt="Ticket de venta"></div>
+      <div class="sh-foot"><button class="btn" data-act="tkDescargar">⬇️ Descargar</button><button class="btn pri" data-act="tkCompartir">📤 Compartir</button></div>`;
+  } });
+}
+const tkArchivo = async () => { const { v, url } = ctx(); return new File([await (await fetch(url)).blob()], `ticket_${folio(v)}.png`, { type: 'image/png' }); };
+const leerTienda = () => Object.fromEntries($$('[data-t]').map(i => [i.dataset.t, i.type === 'checkbox' ? i.checked : i.value.trim()]));
+const DEMO_VENTA = () => ({ id: 'demo00abc123', fecha: Date.now(), estado: 'ok', usuario: S.user?.email || null, cliente: 'Cliente de ejemplo', metodo: 'Efectivo',
+  items: [{ nombre: 'Figura de ejemplo', cant: 2, precio: 50, importe: 100, piezasNum: [1, 3] }, { nombre: 'Rompecabezas', cant: 1, precio: 180, importe: 180 }],
+  subtotal: 280, descuento: 20, total: 260 });
+
 function csv(rows, nombre) {
   const txt = '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\r\n');
   descargar(new Blob([txt], { type: 'text/csv;charset=utf-8' }), nombre);
 }
 
 function vLogin() {
-  return `<div class="card login">${mascota('lg')}<h2>¡Bienvenid@ a ${esc(cfg.tienda)}!</h2><p>Inicia sesión para abrir tu inventario en la nube ☁️</p>
+  return `<div class="card login">${mascota('lg')}<h2>¡Bienvenid@ a ${esc(tiendaNombre())}!</h2><p>Inicia sesión para abrir tu inventario en la nube ☁️</p>
     <form id="loginForm"><input type="email" id="lgE" required placeholder="Correo" autocomplete="username"><input type="password" id="lgP" required placeholder="Contraseña" autocomplete="current-password">
     <button class="btn pri">Entrar ✨</button></form>
     <div class="row-btns"><button class="btn ghost sm" data-act="resetPw">¿Olvidaste tu contraseña?</button><button class="btn ghost sm" data-go="ajustes">⚙️ Ajustes</button></div></div>`;
@@ -977,8 +1140,13 @@ function vError() {
 function vAjustes() {
   const fbTxt = cfg.fb ? JSON.stringify(cfg.fb, null, 2) : '';
   return `<div class="set-grid">
-    <section class="card"><h3>🏪 Tu tienda</h3>
-      <label class="field">Nombre de la tienda<input data-cfg="tienda" value="${esc(cfg.tienda)}"></label>
+    <section class="card"><h3>🧾 Ticket digital y datos de la tienda</h3>
+      <p class="hint">Aparecen en el ticket de cada venta y se comparten entre todos tus dispositivos.</p>
+      ${TCAMPOS.map(([k, l, ph]) => { const val = esc(S.tienda[k] ?? (k === 'nombre' ? tiendaNombre() : ''));
+        return `<label class="field">${l}${k === 'direccion' || k === 'mensaje' ? `<textarea data-t="${k}" rows="2" placeholder="${ph}">${val}</textarea>` : `<input data-t="${k}" value="${val}" placeholder="${ph}">`}</label>`; }).join('')}
+      <label class="check"><input type="checkbox" data-t="mascota" ${S.tienda.mascota === false ? '' : 'checked'}> Mostrar mi mascota en el ticket</label>
+      <div class="row-btns"><button class="btn pri" data-act="guardarTienda">💾 Guardar datos</button><button class="btn" data-act="verEjemplo">👁️ Vista previa</button></div></section>
+    <section class="card"><h3>🏪 Precios</h3>
       <label class="field">Margen por defecto para calcular precio (%)<input data-cfg="margen" type="number" inputmode="decimal" value="${esc(cfg.margen)}"></label></section>
     <section class="card"><h3>🎎 Tu mascota</h3><div class="avatars">${Object.keys(AVATARS).map(k =>
       `<button class="av${cfg.avatar === k ? ' on' : ''}" data-act="avatar" data-v="${k}">${AVATARS[k]}${NOMBRES_AV[k]}</button>`).join('')}</div></section>
@@ -1006,13 +1174,13 @@ function parseFbCfg(t) {
   return o;
 }
 function mAjustes() {
-  $$('[data-cfg]').forEach(i => i.onchange = () => { cfg[i.dataset.cfg] = i.type === 'number' ? num(i.value) : i.value.trim(); saveCfg(); $('#storeName').textContent = cfg.tienda; toast('Guardado ✨'); });
+  $$('[data-cfg]').forEach(i => i.onchange = () => { cfg[i.dataset.cfg] = i.type === 'number' ? num(i.value) : i.value.trim(); saveCfg(); toast('Guardado ✨'); });
   $('#restore').onchange = async e => {
     const f = e.target.files[0]; if (!f) return;
     try {
       const d = JSON.parse(await f.text());
       if (!Array.isArray(d.productos)) throw new Error('Archivo no válido');
-      if (!confirm(`¿Restaurar ${d.productos.length} productos y ${(d.ventas || []).length} ventas en ${DB.nombre}? Los registros con el mismo ID se reemplazan.`)) return;
+      if (!confirm(`¿Restaurar ${d.productos.length} productos, ${(d.ventas || []).length} ventas y ${(d.fotos || []).length} fotos extra en ${DB.nombre}? Los registros con el mismo ID se reemplazan.`)) return;
       await Ops.importar(d); toast('Respaldo restaurado ✅'); say('¡Todo de vuelta! 💖');
     } catch (er) { toast(er.message, 'err'); }
     e.target.value = '';
@@ -1021,7 +1189,9 @@ function mAjustes() {
 
 /* ---------- Detalle de producto ---------- */
 function abrirDetalle(id) {
-  openSheet({ live: true, ctx: { id, sel: [], qty: 1 }, html() {
+  const ctx0 = { id, sel: [], qty: 1, gal: S.galCache.get(id) || null };
+  if (!ctx0.gal) galeria(id).then(g => { if (S.sheet?.ctx === ctx0) { ctx0.gal = g; drawSheet(); } });
+  openSheet({ live: true, ctx: ctx0, html() {
     const c = this.ctx, p = S.productos.get(c.id);
     if (!p) return head('Producto') + '<p class="empty">Este producto ya no existe.</p>';
     const set = esSet(p), st = stockDe(p), mg = margen(p);
@@ -1031,7 +1201,8 @@ function abrirDetalle(id) {
     return `${head(esc(p.nombre))}<div class="det">
       <div class="det-photo">${fotoHTML(p, { cls: 'big' + (set ? ' inter' : ''), sel: c.sel })}
         ${set && !p.foto ? `<div class="pz-list">${p.piezas.map((z, i) => `<button type="button" class="pzchip${z.vendida ? ' off' : ''}${c.sel.includes(z.id) ? ' on' : ''}" data-act="selPz" data-id="${z.id}">#${i + 1}${z.nombre ? ' ' + esc(z.nombre) : ''}</button>`).join('')}</div>` : ''}
-        ${set ? `<p class="hint">👆 Toca las piezas para seleccionarlas · ${c.sel.length} seleccionada(s)</p>` : ''}</div>
+        ${set ? `<p class="hint">👆 Toca las piezas para seleccionarlas · ${c.sel.length} seleccionada(s)</p>` : ''}
+        ${p.foto && c.gal?.length ? `<div class="gal">${[p.foto, ...c.gal.map(f => f.foto)].map((f, i) => `<div class="gth${i ? '' : ' cover'}" data-act="verFoto" data-i="${i}"><img src="${f}" alt="">${i ? '' : '<em>Portada</em>'}</div>`).join('')}</div>` : ''}</div>
       <div><div class="row-btns" style="margin:0"><span class="badge st-${estado(p)}">${set ? `${st} de ${p.piezas.length} piezas` : `${st} en stock`}</span>
           ${p.categoria ? `<span class="tag">${esc(p.categoria)}</span>` : ''}${p.codigo ? `<span class="tag">#${esc(p.codigo)}</span>` : ''}${set ? '<span class="tag">🧩 Set</span>' : ''}</div>
         <div class="prices"><div><small>Costo</small><b>${money(p.costo)}</b></div><div><small>Sugerido</small><b>${money(p.precioSugerido)}</b></div>
@@ -1051,21 +1222,23 @@ function abrirDetalle(id) {
       </div></div>`;
   }, mount(r) {
     const ph = $('.box.inter .ph', r);
+    if (!ph && $('.det-photo .ph', r)) $('.det-photo .ph', r).onclick = () => ACT.verFoto({ dataset: { i: 0 } });
     if (ph) ph.onclick = e => { const b = e.target.closest('.pz'); if (!b) return; const s = this.ctx.sel, id = b.dataset.z; s.includes(id) ? s.splice(s.indexOf(id), 1) : s.push(id); drawSheet(); };
   } });
 }
 
 /* ---------- Editor de producto ---------- */
-function abrirEditor(id) {
+async function abrirEditor(id) {
   const base = id && S.productos.get(id);
+  const gal = base ? structuredClone(await galeria(id)) : [];
   const d = base ? structuredClone(base) : { id: uid(), tipo: 'individual', nombre: '', categoria: S.cat || '', codigo: '', costo: '', precioSugerido: '', precioVenta: '',
     stock: 1, stockMin: 1, piezas: [], foto: '', ar: 1, ms: 9, notas: '', creado: Date.now() };
-  openSheet({ live: false, ctx: { d, sel: null, nuevo: !base }, html() {
+  openSheet({ live: false, ctx: { d, sel: null, nuevo: !base, gal, gal0: gal.map(f => f.id) }, html() {
     const { d } = this.ctx, set = esSet(d);
     return `${head(this.ctx.nuevo ? '✨ Nuevo producto' : '✏️ Editar producto')}<div class="ed">
-      <div class="ed-photo"><div id="pzArea">${pzArea(this.ctx)}</div>
-        <div class="row-btns"><label class="btn">📷 Cámara<input type="file" accept="image/*" capture="environment" data-foto hidden></label>
-          <label class="btn">🖼️ Galería<input type="file" accept="image/*" data-foto hidden></label>${d.foto ? '<button class="btn ghost" data-act="quitarFoto">Quitar foto</button>' : ''}</div></div>
+      <div class="ed-photo"><div id="pzArea">${pzArea(this.ctx)}</div>${galEd(this.ctx)}
+        <div class="row-btns"><label class="btn">📷 ${d.foto ? '＋ ' : ''}Cámara<input type="file" accept="image/*" capture="environment" data-foto hidden></label>
+          <label class="btn">🖼️ ${d.foto ? '＋ ' : ''}Galería<input type="file" accept="image/*" data-foto hidden></label></div></div>
       <form id="edForm" onsubmit="return false">
         <div class="seg"><button type="button" data-act="tipo" data-v="individual" class="${set ? '' : 'on'}">📦 Individual</button><button type="button" data-act="tipo" data-v="set" class="${set ? 'on' : ''}">🧩 Set / lote</button></div>
         ${field('nombre', 'Nombre *', 'text', d.nombre, 'Ej. Figuras chibi serie 2')}
@@ -1084,13 +1257,25 @@ function abrirEditor(id) {
     mgTxt(r, c.d);
     $$('[data-foto]', r).forEach(i => i.onchange = async () => {
       const f = i.files[0]; i.value = ''; if (!f) return;
+      if (c.d.foto && 1 + c.gal.length >= MAX_FOTOS) return toast(`Máximo ${MAX_FOTOS} fotos por producto`, 'warn');
       const crop = await recortar(f); if (!crop) return;
       toast('Procesando foto… 📸');
-      try { Object.assign(c.d, await procesarImagen(f, crop)); drawSheet(); say(esSet(c.d) ? '¡Linda foto! Ahora marca cada pieza 👆' : '¡Linda foto! 📸'); }
+      try {
+        const img = await procesarImagen(f, crop), primera = !c.d.foto;
+        if (primera) Object.assign(c.d, img); else c.gal.push({ id: uid(), pid: c.d.id, ...img, t: Date.now(), nuevo: true });
+        drawSheet(); say(!primera ? '¡Foto agregada! Toca ⭐ para hacerla portada' : esSet(c.d) ? '¡Linda foto! Ahora marca cada pieza 👆' : '¡Linda foto! 📸');
+      }
       catch (e) { toast(e.message, 'err'); }
     });
     bindPz(r, c);
   } });
+}
+function galEd(c) {
+  const d = c.d; if (!d.foto) return '';
+  const fs = [{ id: '', foto: d.foto }, ...c.gal];
+  return `<div class="gal">${fs.map((f, i) => `<div class="gth${i ? '' : ' cover'}"><img src="${f.foto}" alt="">${i
+    ? `<button type="button" class="gb star" data-act="galCover" data-id="${f.id}" aria-label="Hacer portada">⭐</button>` : '<em>⭐ Portada</em>'}<button type="button" class="gb del" data-act="galDel" data-id="${f.id}" aria-label="Quitar foto">✕</button></div>`).join('')}</div>
+    <p class="hint">${fs.length}/${MAX_FOTOS} fotos · toca ⭐ para elegir la portada${esSet(d) ? ' (las marcas de piezas van sobre la portada)' : ''}</p>`;
 }
 const leerForm = (d, r) => $$('[data-f]', r).forEach(i => d[i.dataset.f] = i.value);
 function mgTxt(r, d) {
@@ -1177,7 +1362,20 @@ const ACT = {
   },
   // editor
   tipo: a => { const c = ctx(); leerForm(c.d, sheetRoot()); c.d.tipo = a.dataset.v; if (c.d.tipo === 'set' && num(c.d.stockMin) > 1) c.d.stockMin = 1; drawSheet(); },
-  quitarFoto: () => { ctx().d.foto = ''; drawSheet(); },
+  galCover: a => {
+    const c = ctx(), d = c.d, i = c.gal.findIndex(f => f.id === a.dataset.id); if (i < 0) return;
+    const f = c.gal[i]; leerForm(d, sheetRoot());
+    c.gal[i] = { id: uid(), pid: d.id, foto: d.foto, ar: d.ar, t: f.t, nuevo: true }; d.foto = f.foto; d.ar = f.ar;
+    drawSheet(); if (esSet(d) && d.piezas.length) say('Nueva portada: acomoda las marcas sobre las piezas 👆');
+  },
+  galDel: a => {
+    const c = ctx(), d = c.d, id = a.dataset.id; leerForm(d, sheetRoot());
+    if (id) c.gal = c.gal.filter(f => f.id !== id);
+    else if (c.gal.length) { const f = c.gal.shift(); d.foto = f.foto; d.ar = f.ar; }
+    else d.foto = '';
+    drawSheet();
+  },
+  verFoto: a => { const c = ctx(), p = S.productos.get(c.id); abrirVisor([p.foto, ...(c.gal || []).map(f => f.foto)].filter(Boolean), +a.dataset.i); },
   calcPrecio: () => { const c = ctx(), r = sheetRoot(); leerForm(c.d, r); c.d.precioVenta = r2(num(c.d.costo) * (1 + num(cfg.margen) / 100)); $('[data-f=precioVenta]', r).value = c.d.precioVenta; mgTxt(r, c.d); },
   pzSel: a => { const c = ctx(); c.sel = c.sel === a.dataset.id ? null : a.dataset.id; refreshPz(sheetRoot(), c); },
   pzToggle: () => { const c = ctx(), z = c.d.piezas.find(z => z.id === c.sel); z.vendida = !z.vendida; refreshPz(sheetRoot(), c); },
@@ -1192,8 +1390,10 @@ const ACT = {
     d.piezas.forEach(z => z.precio = z.precio === '' || z.precio == null ? '' : num(z.precio));
     if (esSet(d)) d.stock = stockDe(d);
     d.actualizado = Date.now(); a.disabled = true;
-    try { await Ops.guardar(d); closeSheet(); toast('Guardado ✨'); say(c.nuevo ? '¡Nuevo producto en la tienda! 🎉' : '¡Cambios guardados! 💾'); }
-    catch (e) { a.disabled = false; toast(e.message, 'err'); }
+    const put = c.gal.filter(f => f.nuevo).map(({ nuevo, ...f }) => ({ ...f, pid: d.id }));
+    const del = c.gal0.filter(id => !c.gal.some(f => f.id === id));
+    try { await Ops.guardar(d, put, del); closeSheet(); toast('Guardado ✨'); say(c.nuevo ? '¡Nuevo producto en la tienda! 🎉' : '¡Cambios guardados! 💾'); }
+    catch (e) { a.disabled = false; toast(errMsg(e), 'err'); }
   },
   // vender
   addRapido: a => { const p = S.productos.get(a.dataset.id); if (esSet(p)) abrirDetalle(p.id); else if (agregarCarrito(p)) renderTicket(); },
@@ -1216,6 +1416,19 @@ const ACT = {
     a.disabled = true;
     try { await Ops.cancelar(v); toast('Venta cancelada ↩️'); } catch (e) { a.disabled = false; toast(e.message, 'err'); }
   },
+  verTicket: () => abrirTicket(S.ventas.find(x => x.id === ctx().id)),
+  tkDescargar: async () => { const f = await tkArchivo(); descargar(f, f.name); },
+  tkCompartir: async () => {
+    try { const f = await tkArchivo(); if (navigator.canShare?.({ files: [f] })) await navigator.share({ files: [f], title: f.name }); else descargar(f, f.name); }
+    catch (e) { if (e.name !== 'AbortError') toast(e.message, 'err'); }
+  },
+  guardarTienda: async a => {
+    const t = leerTienda(); if (!t.nombre) return toast('Escribe el nombre de la tienda', 'warn');
+    a.disabled = true;
+    try { await Ops.guardarTienda(t); toast('Datos de la tienda guardados ✨'); say('¡Tu ticket quedó precioso! 🧾'); } catch (e) { toast(errMsg(e), 'err'); }
+    a.disabled = false;
+  },
+  verEjemplo: () => abrirTicket(S.ventas.find(v => v.estado !== 'cancelada') || DEMO_VENTA(), leerTienda()),
   csvVentas: () => {
     const rows = [['Fecha', 'Folio', 'Estado', 'Producto', 'Tipo', 'Piezas', 'Cantidad', 'Costo unit.', 'Sugerido unit.', 'Precio unit.', 'Importe', 'Descuento venta', 'Total venta', 'Ganancia venta', 'Método', 'Cliente', 'Nota']];
     ventasRango().forEach(v => v.items.forEach((it, i) => rows.push([fechaTxt(v.fecha), v.id, v.estado, it.nombre, it.tipo, (it.piezasNum || []).join(' '), it.cant, it.costo, it.sugerido, it.precio, it.importe,
@@ -1234,7 +1447,11 @@ const ACT = {
     const e = $('#lgE').value.trim(); if (!e) return toast('Escribe tu correo primero', 'warn');
     try { await FB.reset(e); toast('Te enviamos un correo para restablecerla 📧'); } catch (er) { toast(ERR_AUTH[er.code] || er.message, 'err'); }
   },
-  backup: () => descargar(new Blob([JSON.stringify({ app: 'kawaii-stock', version: 1, fecha: new Date().toISOString(), productos: [...S.productos.values()], ventas: S.ventas })], { type: 'application/json' }), `respaldo_${hoyISO()}.json`),
+  backup: async () => {
+    const fotos = await DB.todasFotos();
+    descargar(new Blob([JSON.stringify({ app: 'kawaii-stock', version: 2, fecha: new Date().toISOString(), productos: [...S.productos.values()], ventas: S.ventas,
+      fotos, config: S.tienda.id ? [S.tienda] : [] })], { type: 'application/json' }), `respaldo_${hoyISO()}.json`);
+  },
   csvInv: () => csv([['Nombre', 'Tipo', 'Categoría', 'Código', 'Stock', 'Piezas totales', 'Stock mínimo', 'Costo', 'Precio sugerido', 'Precio venta', 'Margen %', 'Notas'],
     ...[...S.productos.values()].map(p => [p.nombre, p.tipo, p.categoria, p.codigo, stockDe(p), esSet(p) ? p.piezas.length : '', p.stockMin, p.costo, p.precioSugerido, p.precioVenta, margen(p).toFixed(1), p.notas])], `inventario_${hoyISO()}.csv`),
   borrarLocal: async () => { if (confirm('¿Borrar TODOS los productos y ventas de este equipo? Descarga un respaldo antes.') && confirm('¿Seguro? No se puede deshacer.')) { await Local.borrarTodo(); toast('Datos borrados'); } }

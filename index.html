@@ -241,6 +241,8 @@ a.btn{color:var(--ink)}
 .tk img{width:min(100%,380px);height:auto;filter:drop-shadow(4px 4px 0 var(--ink))}
 .check{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:.9rem;margin:4px 0 6px}
 .check input{width:22px;height:22px;margin:0;accent-color:var(--pink)}
+.gadd{display:grid;place-items:center;font-size:2rem;font-weight:800;color:var(--purple);border-style:dashed;background:var(--lilac)}
+.pz-foto{margin:8px 0}
 .logo-ed{display:flex;gap:14px;align-items:center;margin:10px 0}
 .logo-prev{width:96px;height:120px;flex:none;display:grid;place-items:center;border:2.5px solid var(--ink);border-radius:16px;background:#fff;padding:6px}
 .logo-prev img{max-width:100%;max-height:100%}
@@ -654,7 +656,8 @@ function espejo(puts, dels) {
   return [p2, d2];
 }
 /* Fotos adicionales: se guardan aparte (colección "fotos") para no rebasar el límite de 1 MB por producto. */
-const MAX_FOTOS = 8;
+const MAX_FOTOS = 8, maxFotos = d => esSet(d) ? Math.max(MAX_FOTOS, d.piezas.length + 4) : MAX_FOTOS;
+const pzDeFoto = (d, fid) => (d.piezas || []).map((z, i) => z.fid === fid ? i + 1 : 0).filter(Boolean);
 async function galeria(pid) {
   if (!S.galCache.has(pid)) S.galCache.set(pid, (await DB.dePid('fotos', pid)).sort((a, b) => a.t - b.t));
   return S.galCache.get(pid);
@@ -1511,32 +1514,55 @@ function fondoPagina(g) {
   g.fillStyle = 'rgba(124,58,237,.09)';
   for (let y = 14, f = 0; y < PH; y += 28, f++) for (let x = 14 + (f % 2) * 14; x < PW; x += 28) { g.beginPath(); g.arc(x, y, 2, 0, 7); g.fill(); }
 }
-function dibujarFoto(g, im, p, x, y, T) {
-  g.save(); g.beginPath(); g.roundRect(x, y, T, T, 38); g.clip();
-  g.fillStyle = '#fff'; g.fillRect(x, y, T, T);
+function dibujarFoto(g, im, p, x, y, W, H = W, rad = 38) {
+  g.save(); g.beginPath(); g.roundRect(x, y, W, H, rad); g.clip();
+  g.fillStyle = '#fff'; g.fillRect(x, y, W, H);
   if (im) {
-    const pad = 16, sc = Math.min((T - pad * 2) / im.naturalWidth, (T - pad * 2) / im.naturalHeight), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
-    const ox = x + (T - dw) / 2, oy = y + (T - dh) / 2;
+    const pad = 16, sc = Math.min((W - pad * 2) / im.naturalWidth, (H - pad * 2) / im.naturalHeight), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc;
+    const ox = x + (W - dw) / 2, oy = y + (H - dh) / 2;
     g.drawImage(im, ox, oy, dw, dh);
     if (esSet(p)) {
-      const r = Math.max(9, dw * (p.ms || 9) / 200);
+      const r = Math.max(11, dw * (p.ms || 9) / 200);
       p.piezas.forEach((z, i) => {
         const cx = ox + z.x / 100 * dw, cy = oy + z.y / 100 * dh;
-        g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fillStyle = z.vendida ? 'rgba(30,10,55,.6)' : PAL.pink; g.fill();
+        g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fillStyle = z.vendida ? (z.ap ? PAL.yellow : 'rgba(30,10,55,.6)') : PAL.pink; g.fill();
         g.lineWidth = r * .16; g.strokeStyle = '#fff'; g.stroke();
-        if (z.vendida) { const k = r * .62; g.strokeStyle = '#ff2d55'; g.lineWidth = r * .3; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx - k, cy - k); g.lineTo(cx + k, cy + k); g.moveTo(cx + k, cy - k); g.lineTo(cx - k, cy + k); g.stroke(); }
-        else pdfTexto(g, String(i + 1), cx, cy + 1, { size: Math.round(r * 1.05), col: '#fff', al: 'center', base: 'middle' });
+        if (z.vendida && !z.ap) { const k = r * .62; g.strokeStyle = '#ff2d55'; g.lineWidth = r * .3; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx - k, cy - k); g.lineTo(cx + k, cy + k); g.moveTo(cx + k, cy - k); g.lineTo(cx - k, cy + k); g.stroke(); }
+        else pdfTexto(g, String(i + 1), cx, cy + 1, { size: Math.round(r * 1.05), col: z.ap ? PAL.ink : '#fff', al: 'center', base: 'middle' });
       });
     }
   } else {
-    g.fillStyle = PAL.lilac; g.fillRect(x, y, T, T); rayas(g, x, y, T, T, 'rgba(124,58,237,.08)', 22, 6);
-    pdfTexto(g, (p.nombre.trim()[0] || '?').toUpperCase(), x + T / 2, y + T / 2 - 14, { size: 120, peso: 400, fam: FT_T, col: PAL.purple, al: 'center', base: 'middle' });
-    pdfTexto(g, 'foto próximamente', x + T / 2, y + T - 52, { size: 20, col: PAL.muted, al: 'center' });
+    g.fillStyle = PAL.lilac; g.fillRect(x, y, W, H); rayas(g, x, y, W, H, 'rgba(124,58,237,.08)', 22, 6);
+    pdfTexto(g, (p.nombre.trim()[0] || '?').toUpperCase(), x + W / 2, y + H / 2 - 14, { size: Math.round(Math.min(W, H) * .42), peso: 400, fam: FT_T, col: PAL.purple, al: 'center', base: 'middle' });
+    pdfTexto(g, 'foto próximamente', x + W / 2, y + H - 52, { size: 22, col: PAL.muted, al: 'center' });
   }
   g.restore();
-  g.beginPath(); g.roundRect(x, y, T, T, 38); g.lineWidth = 6; g.strokeStyle = PAL.ink; g.stroke();
+  g.beginPath(); g.roundRect(x, y, W, H, rad); g.lineWidth = 6; g.strokeStyle = PAL.ink; g.stroke();
 }
-function encabezado(g, pag, total, t, logo, n, midori) {
+function escenario(g, x, y, W, H, idx, dx = 28, dy = 26) {
+  const [c1, c2] = ESCENARIOS[idx % ESCENARIOS.length], ex = x + dx, ey = y + dy, grd = g.createLinearGradient(ex, ey, ex + W, ey + H);
+  grd.addColorStop(0, c1); grd.addColorStop(1, c2);
+  g.beginPath(); g.roundRect(ex, ey, W, H, 44); g.fillStyle = grd; g.fill();
+  g.save(); g.beginPath(); g.roundRect(ex, ey, W, H, 44); g.clip(); rayas(g, dx > 0 ? ex + W * .6 : ex, ey + H * .6, W * .4, H * .4, 'rgba(255,255,255,.35)', 14, 4); g.restore();
+}
+function boton(g, label, x, y, links, url, { size = 26, h = 60, fondo = PAL.green } = {}) {
+  g.font = `800 ${size}px ${FT_B}`; const w = g.measureText(label).width + size * 3.6;
+  sombraTinta(g, c => { g.beginPath(); g.roundRect(x, y, w, h, h / 2); g.fillStyle = c || fondo; g.fill(); if (!c) { g.lineWidth = 3; g.strokeStyle = PAL.ink; g.stroke(); } }, 5, 5);
+  iconoChat(g, x + size * 1.3, y + h / 2 - 2, size * .58, '#fff');
+  pdfTexto(g, label, x + size * 2.35, y + h / 2 + 1, { size, col: '#fff', base: 'middle' });
+  if (url) links.push({ x, y, w, h, url });
+  return w;
+}
+function titular(g, txt, x, y, { size = 40, sub = '' } = {}) {
+  const w = pdfTexto(g, txt, x + 44, y, { size, peso: 400, fam: FT_T, esp: 2 });
+  destello(g, x + 16, y + size * .55, 16, PAL.pink);
+  const grd = g.createLinearGradient(x, 0, x + 44 + w, 0); grd.addColorStop(0, PAL.pink); grd.addColorStop(1, PAL.purple);
+  g.fillStyle = grd; g.beginPath(); g.roundRect(x + 44, y + size + 12, w, 7, 4); g.fill();
+  if (sub) pdfTexto(g, sub, x + 44 + w + 22, y + size * .45, { size: 22, col: PAL.muted });
+  return w;
+}
+const msjWA = (t, txt) => `Hola ${t.nombre || tiendaNombre()} 👋, vi en el catálogo: ${txt}. ¿Sigue disponible?`;
+function encabezado(g, pag, total, t, logo, n, midori, seccion = '') {
   const nom = t.nombre || tiendaNombre(), grd = g.createLinearGradient(0, 0, PW, 0); grd.addColorStop(0, PAL.pink); grd.addColorStop(1, PAL.purple);
   if (pag === 0) {
     g.save(); g.beginPath(); g.moveTo(0, 0); g.lineTo(PW, 0); g.lineTo(PW, 380); g.lineTo(0, 450); g.closePath(); g.fillStyle = grd; g.fill(); g.clip();
@@ -1570,52 +1596,8 @@ function encabezado(g, pag, total, t, logo, n, midori) {
     if (logo) { const sc = Math.min(94 / logo.naturalWidth, 118 / logo.naturalHeight), w = logo.naturalWidth * sc, h = logo.naturalHeight * sc; g.drawImage(logo, MG + (112 - w) / 2, 26 + (136 - h) / 2, w, h); }
     sombraTinta(g, c => pdfTexto(g, 'CATÁLOGO', MG + 146, 30, { size: 52, peso: 400, fam: FT_T, col: c || '#fff' }), 4, 4);
     pdfTexto(g, nom, MG + 150, 92, { size: 22, col: 'rgba(255,255,255,.92)', esp: 1 });
-    destello(g, PW - MG - 14, 52, 14, 'rgba(255,255,255,.9)'); destello(g, PW - MG - 52, 86, 8, 'rgba(255,255,255,.7)');
-  }
-}
-function categoriaPDF(g, f, y) {
-  const w = pdfTexto(g, f.c.toUpperCase(), MG + 44, y + 18, { size: 40, peso: 400, fam: FT_T, esp: 2 });
-  destello(g, MG + 16, y + 40, 16, PAL.pink);
-  const grd = g.createLinearGradient(MG, 0, MG + 44 + w, 0); grd.addColorStop(0, PAL.pink); grd.addColorStop(1, PAL.purple);
-  g.fillStyle = grd; g.beginPath(); g.roundRect(MG + 44, y + 70, w, 7, 4); g.fill();
-  pdfTexto(g, `${f.n} disponible${f.n === 1 ? '' : 's'}`, MG + 44 + w + 22, y + 36, { size: 22, col: PAL.muted });
-}
-function productoPDF(g, f, y, idx, im, links, t) {
-  const p = f.p, set = esSet(p), izq = idx % 2 === 0, T = 290, tx = izq ? MG + 18 : PW - MG - T - 30, ty = y + 70, [c1, c2] = ESCENARIOS[idx % ESCENARIOS.length];
-  // escenario desplazado + rayas
-  const ex = tx + (izq ? 28 : -28), ey = ty + 26, grd = g.createLinearGradient(ex, ey, ex + T, ey + T); grd.addColorStop(0, c1); grd.addColorStop(1, c2);
-  g.beginPath(); g.roundRect(ex, ey, T, T, 44); g.fillStyle = grd; g.fill();
-  g.save(); g.beginPath(); g.roundRect(ex, ey, T, T, 44); g.clip(); rayas(g, izq ? ex + T * .55 : ex, ey + T * .55, T * .45, T * .45, 'rgba(255,255,255,.35)', 14, 4); g.restore();
-  dibujarFoto(g, im, p, tx, ty, T);
-  // precio como onomatopeya de cómic: estallido con picos + letras inclinadas con contorno
-  const precio = set ? precioPieza(p, {}) : precioDe(p), mx = izq ? tx + T - 4 : tx + 4, my = ty + 6;
-  onomatopeya(g, precioCorto(precio), set ? 'c/u' : '', mx, my, idx);
-  // bloque de texto
-  const bx = izq ? tx + T + 120 : MG, bw = PW - MG - T - 120 - 30 - 18 - (izq ? 0 : 0), bmax = izq ? PW - MG - bx : tx - 120 - MG;
-  let yy = y + 76;
-  pdfTexto(g, (p.categoria || 'Novedad').toUpperCase(), bx, yy, { size: 20, col: PAL.purple, esp: 3 }); yy += 36;
-  g.font = `400 42px ${FT_T}`; pdfLineas(g, p.nombre, bmax, 2).forEach(l => { pdfTexto(g, l, bx, yy, { size: 42, peso: 400, fam: FT_T }); yy += 54; });
-  // hilo conector hacia la imagen
-  const ly = yy + 10, lx1 = izq ? tx + T + 34 : tx - 34, lx0 = izq ? bx + Math.min(bmax, 320) : bx + bmax - Math.min(bmax, 320);
-  g.strokeStyle = PAL.pink; g.lineWidth = 4; g.beginPath(); g.moveTo(izq ? lx1 : lx0, ly); g.lineTo(izq ? lx0 : lx1, ly); g.stroke();
-  g.fillStyle = PAL.pink; g.beginPath(); g.arc(lx1, ly, 9, 0, 7); g.fill();
-  yy = ly + 24;
-  // píldoras de datos
-  const st = stockDe(p), chips = [];
-  if (set) chips.push([`Set de ${p.piezas.length} piezas`]);
-  chips.push(st === 1 ? ['¡Última pieza!', PAL.pink, '#fff'] : [`${st} disponibles`]);
-  if (p.codigo) chips.push([`#${p.codigo}`, '#fff']);
-  let cx = bx;
-  chips.forEach(([txt, fondo, tinta]) => { g.font = `800 22px ${FT_B}`; const w = g.measureText(txt).width + 36; if (cx + w > bx + bmax) return; cx += pildora(g, txt, cx, yy, { fondo, tinta }) + 12; });
-  yy += 62;
-  // botón "Lo quiero" + piezas disponibles
-  if (t.whatsapp) {
-    g.font = `800 24px ${FT_B}`; const label = 'Lo quiero', w = g.measureText(label).width + 92, h = 52;
-    sombraTinta(g, c => { g.beginPath(); g.roundRect(bx, yy, w, h, h / 2); g.fillStyle = c || PAL.green; g.fill(); if (!c) { g.lineWidth = 3; g.strokeStyle = PAL.ink; g.stroke(); } }, 4, 4);
-    iconoChat(g, bx + 32, yy + h / 2 - 2, 14, '#fff');
-    pdfTexto(g, label, bx + 58, yy + h / 2 + 1, { size: 24, col: '#fff', base: 'middle' });
-    links.push({ x: bx, y: yy, w, h, url: waLink(t.whatsapp, `Hola ${t.nombre || tiendaNombre()} 👋, vi en el catálogo: ${p.nombre}${p.codigo ? ' (' + p.codigo + ')' : ''} · ${precioCorto(precio)}${set ? ' c/u' : ''}. ¿Sigue disponible?`) });
-    if (set) { const nums = p.piezas.map((z, i) => z.vendida ? 0 : i + 1).filter(Boolean); if (nums.length <= 16) pdfTexto(g, 'Piezas: ' + nums.join(' · '), bx + w + 22, yy + h / 2, { size: 21, peso: 700, col: PAL.muted, base: 'middle' }); }
+    if (seccion) { g.font = `800 22px ${FT_B}`; const w = g.measureText(seccion).width + 52; pildora(g, seccion, PW - MG - w, 36, { fondo: 'rgba(255,255,255,.18)', tinta: '#fff', borde: 'rgba(255,255,255,.8)', size: 22 }); }
+    destello(g, PW - MG - 10, 96, 10, 'rgba(255,255,255,.85)');
   }
 }
 function rafaga(g, x, y, r, n, semilla) {
@@ -1626,8 +1608,8 @@ function rafaga(g, x, y, r, n, semilla) {
   }
   g.closePath();
 }
-function onomatopeya(g, txt, sub, x, y, idx) {
-  const R = 104, fondo = [PAL.yellow, '#ffe14f', PAL.yellow, '#ffd23f'][idx % 4], gira = (idx % 2 ? 1 : -1) * .14;
+function onomatopeya(g, txt, sub, x, y, idx, R = 104) {
+  const fondo = [PAL.yellow, '#ffe14f', PAL.yellow, '#ffd23f'][idx % 4], gira = (idx % 2 ? 1 : -1) * .14;
   // líneas de velocidad detrás
   g.save(); g.strokeStyle = PAL.ink; g.lineWidth = 4; g.lineCap = 'round';
   for (let i = 0; i < 10; i++) { const a = i * Math.PI / 5 + .3, r0 = R * 1.02, r1 = R * (1.16 + (i % 3) * .07); g.beginPath(); g.moveTo(x + Math.cos(a) * r0, y + Math.sin(a) * r0 * .86); g.lineTo(x + Math.cos(a) * r1, y + Math.sin(a) * r1 * .86); g.stroke(); }
@@ -1638,13 +1620,13 @@ function onomatopeya(g, txt, sub, x, y, idx) {
   rafaga(g, x, y, R * .62, 13, idx + 5); g.fillStyle = 'rgba(255,255,255,.55)'; g.fill();
   // letras gruesas, inclinadas, con contorno y sombra
   g.save(); g.translate(x, y + (sub ? -8 : 2)); g.rotate(gira);
-  const z = pdfAjustar(g, txt, R * 1.24, 46, 400, FT_T);
+  const z = pdfAjustar(g, txt, R * 1.24, Math.round(R * .44), 400, FT_T);
   g.font = `400 ${z}px ${FT_T}`; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
   g.fillStyle = PAL.ink; g.fillText(txt, 4, 5);
   g.lineWidth = 9; g.strokeStyle = PAL.ink; g.strokeText(txt, 0, 0);
   g.fillStyle = PAL.pink; g.fillText(txt, 0, 0);
   g.lineWidth = 2; g.strokeStyle = 'rgba(255,255,255,.9)'; g.strokeText(txt, -1, -2);
-  if (sub) { g.font = `400 22px ${FT_T}`; g.lineWidth = 6; g.strokeStyle = PAL.ink; g.strokeText(sub, 0, z * .62 + 8); g.fillStyle = '#fff'; g.fillText(sub, 0, z * .62 + 8); }
+  if (sub) { const sz = Math.round(R * .22); g.font = `400 ${sz}px ${FT_T}`; g.lineWidth = 6; g.strokeStyle = PAL.ink; g.strokeText(sub, 0, z * .62 + sz * .4); g.fillStyle = '#fff'; g.fillText(sub, 0, z * .62 + sz * .4); }
   g.restore();
 }
 function piePDF(g, pag, total, t, mid, links) {
@@ -1661,22 +1643,157 @@ function piePDF(g, pag, total, t, mid, links) {
   pdfTexto(g, `${pag + 1} / ${total}`, PW - MG, y0 + 62, { size: 26, col: 'rgba(255,255,255,.85)', al: 'right', base: 'middle' });
   if (mid) { const h = 168, w = h * mid.naturalWidth / mid.naturalHeight; g.drawImage(mid, PW - MG - 96 - w, PH - h + 4, w, h); }
 }
-function cierrePDF(g, y, t, mid, links) {
-  const x = MG, w = PW - MG * 2, h = 300;
-  sombraTinta(g, c => { g.beginPath(); g.roundRect(x, y, w, h, 44); g.fillStyle = c || '#fff'; g.fill(); if (!c) { g.lineWidth = 6; g.strokeStyle = PAL.ink; g.stroke(); } }, 10, 10);
-  g.save(); g.beginPath(); g.roundRect(x, y, w, h, 44); g.clip(); rayas(g, x + w - 260, y, 260, h, 'rgba(255,79,163,.10)', 18, 6); g.restore();
-  let mw = 0; if (mid) { const mh = 268; mw = mh * mid.naturalWidth / mid.naturalHeight; g.drawImage(mid, x + 26, y + h - mh - 6, mw, mh); }
-  const bx = x + 40 + mw + 20, bmax = x + w - 40 - bx; let yy = y + 44;
-  const tz = pdfAjustar(g, '¡Gracias por visitarnos!', bmax, 46, 400, FT_T);
-  pdfTexto(g, '¡Gracias por visitarnos!', bx, yy, { size: tz, peso: 400, fam: FT_T, col: PAL.pink }); yy += tz + 20;
-  g.font = `700 24px ${FT_B}`;
-  [t.mensaje, t.direccion].filter(Boolean).forEach(m => pdfLineas(g, m, bmax, 2).forEach(l => { pdfTexto(g, l, bx, yy, { size: 24, peso: 700, col: PAL.muted }); yy += 34; }));
-  yy += 12;
-  if (t.whatsapp) {
-    g.font = `800 26px ${FT_B}`; const label = 'Escríbenos por WhatsApp', bw = g.measureText(label).width + 100, bh = 60;
-    sombraTinta(g, c => { g.beginPath(); g.roundRect(bx, yy, bw, bh, bh / 2); g.fillStyle = c || PAL.green; g.fill(); if (!c) { g.lineWidth = 3; g.strokeStyle = PAL.ink; g.stroke(); } }, 5, 5);
-    iconoChat(g, bx + 36, yy + bh / 2 - 2, 16, '#fff'); pdfTexto(g, label, bx + 64, yy + bh / 2 + 1, { size: 26, col: '#fff', base: 'middle' });
-    links.push({ x: bx, y: yy, w: bw, h: bh, url: waLink(t.whatsapp, `Hola ${t.nombre || tiendaNombre()} 👋`) });
+/* Pieza individual: ocupa media página */
+function individualPDF(g, p, y0, h, lado, idx, im, links, t) {
+  const T = 470, tx = lado ? PW - MG - T - 34 : MG + 22, ty = y0 + Math.round(h - T - 52);
+  escenario(g, tx, ty, T, T, idx, lado ? -32 : 32, 30);
+  dibujarFoto(g, im, p, tx, ty, T);
+  onomatopeya(g, precioCorto(precioDe(p)), '', lado ? tx + T - 62 : tx + 62, ty + 6, idx, 106);
+  const bx = lado ? MG : tx + T + 110, bmax = lado ? tx - 110 - MG : PW - MG - bx;
+  let yy = ty + 40;
+  pdfTexto(g, (p.categoria || 'Novedad').toUpperCase(), bx, yy, { size: 22, col: PAL.purple, esp: 3 }); yy += 42;
+  g.font = `400 56px ${FT_T}`; pdfLineas(g, p.nombre, bmax, 3).forEach(l => { pdfTexto(g, l, bx, yy, { size: 56, peso: 400, fam: FT_T }); yy += 70; });
+  const ly = yy + 14, lx1 = lado ? tx - 36 : tx + T + 36, lx0 = lado ? bx + Math.min(bmax, 300) : bx + Math.min(bmax, 300);
+  g.strokeStyle = PAL.pink; g.lineWidth = 5; g.beginPath(); g.moveTo(lado ? bx : lx1, ly); g.lineTo(lado ? lx1 : bx + bmax, ly); g.stroke();
+  g.fillStyle = PAL.pink; g.beginPath(); g.arc(lx1, ly, 11, 0, 7); g.fill();
+  yy = ly + 30;
+  const st = stockDe(p); let cx = bx;
+  [st === 1 ? ['¡Última pieza!', PAL.pink, '#fff'] : [`${st} disponibles`], ...(p.codigo ? [[`#${p.codigo}`, '#fff']] : [])]
+    .forEach(([txt, fondo, tinta]) => { cx += pildora(g, txt, cx, yy, { fondo, tinta, size: 24 }) + 12; });
+  yy += 80;
+  if (t.whatsapp) boton(g, 'Lo quiero', bx, yy, links, waLink(t.whatsapp, msjWA(t, `${p.nombre}${p.codigo ? ' (' + p.codigo + ')' : ''} · ${precioCorto(precioDe(p))}`)), { size: 28, h: 66 });
+}
+/* Hueco cuando las piezas individuales son impares */
+function rellenoPDF(g, y0, h, t, mid, links) {
+  const x = MG + 30, w = PW - MG * 2 - 60, ch = Math.min(h - 120, 420), y = y0 + (h - ch) / 2;
+  g.save(); g.setLineDash([16, 14]); g.lineWidth = 5; g.strokeStyle = PAL.purple; g.beginPath(); g.roundRect(x, y, w, ch, 44); g.stroke(); g.restore();
+  g.fillStyle = 'rgba(243,232,255,.6)'; g.beginPath(); g.roundRect(x, y, w, ch, 44); g.fill();
+  let mw = 0; if (mid) { const mh = ch - 40; mw = mh * mid.naturalWidth / mid.naturalHeight; g.drawImage(mid, x + 30, y + 20, mw, mh); }
+  const bx = x + 60 + mw, bmax = x + w - 40 - bx; let yy = y + 70;
+  const tz = pdfAjustar(g, '¡Más novedades muy pronto!', bmax, 46, 400, FT_T);
+  pdfTexto(g, '¡Más novedades muy pronto!', bx, yy, { size: tz, peso: 400, fam: FT_T, col: PAL.purple }); yy += tz + 24;
+  g.font = `700 28px ${FT_B}`; pdfLineas(g, '¿Buscas algo en especial? Cuéntanos y te lo conseguimos.', bmax, 3).forEach(l => { pdfTexto(g, l, bx, yy, { size: 28, peso: 700, col: PAL.muted }); yy += 40; });
+  if (t.whatsapp) boton(g, 'Pregúntanos', bx, yy + 20, links, waLink(t.whatsapp, `Hola ${t.nombre || tiendaNombre()} 👋, estoy buscando…`));
+}
+/* Pieza de un set: tarjeta con foto propia o recorte de la foto grupal */
+function piezaPDF(g, p, z, i, x, y, w, im, imSet, links, t) {
+  const h = w + 84, ap = z.vendida && z.ap, vend = z.vendida && !z.ap;
+  sombraTinta(g, c => { g.beginPath(); g.roundRect(x, y, w, h, 24); g.fillStyle = c || '#fff'; g.fill(); if (!c) { g.lineWidth = 4; g.strokeStyle = PAL.ink; g.stroke(); } }, 6, 6);
+  const ix = x + 10, iy = y + 10, iw = w - 20;
+  g.save(); g.beginPath(); g.roundRect(ix, iy, iw, iw, 16); g.clip();
+  g.fillStyle = '#fff'; g.fillRect(ix, iy, iw, iw);
+  if (im) { const sc = Math.min(iw / im.naturalWidth, iw / im.naturalHeight), dw = im.naturalWidth * sc, dh = im.naturalHeight * sc; g.drawImage(im, ix + (iw - dw) / 2, iy + (iw - dh) / 2, dw, dh); }
+  else if (imSet) {
+    const W = imSet.naturalWidth, H = imSet.naturalHeight, m = Math.min(W, H), s = clamp(W * (p.ms || 9) / 100 * 2.8, m * .16, m * .6);
+    const sx = clamp(z.x / 100 * W - s / 2, 0, W - s), sy = clamp(z.y / 100 * H - s / 2, 0, H - s);
+    g.drawImage(imSet, sx, sy, s, s, ix, iy, iw, iw);
+  } else { g.fillStyle = PAL.lilac; g.fillRect(ix, iy, iw, iw); pdfTexto(g, '#' + (i + 1), ix + iw / 2, iy + iw / 2, { size: Math.round(iw * .3), peso: 400, fam: FT_T, col: PAL.purple, al: 'center', base: 'middle' }); }
+  if (z.vendida) {
+    g.fillStyle = 'rgba(255,250,245,.6)'; g.fillRect(ix, iy, iw, iw);
+    g.translate(ix + iw / 2, iy + iw / 2); g.rotate(-.3); const txt = ap ? 'APARTADA' : 'VENDIDA', fz = Math.round(iw * .15);
+    g.font = `400 ${fz}px ${FT_T}`; const tw = g.measureText(txt).width + fz;
+    g.beginPath(); g.roundRect(-tw / 2, -fz * .85, tw, fz * 1.7, 12); g.fillStyle = ap ? PAL.yellow : '#fff'; g.fill(); g.lineWidth = 5; g.strokeStyle = ap ? PAL.ink : '#ff2d55'; g.stroke();
+    pdfTexto(g, txt, 0, 2, { size: fz, peso: 400, fam: FT_T, col: ap ? PAL.ink : '#ff2d55', al: 'center', base: 'middle' });
+  }
+  g.restore();
+  const br = Math.max(20, Math.round(w * .11));
+  g.beginPath(); g.arc(x + br + 6, y + br + 6, br, 0, 7); g.fillStyle = vend ? '#9a8fb0' : ap ? PAL.yellow : PAL.pink; g.fill(); g.lineWidth = 3; g.strokeStyle = PAL.ink; g.stroke();
+  pdfTexto(g, String(i + 1), x + br + 6, y + br + 7, { size: Math.round(br * 1.05), peso: 400, fam: FT_T, col: ap ? PAL.ink : '#fff', al: 'center', base: 'middle' });
+  const fz = Math.max(17, Math.round(w * .085));
+  g.font = `800 ${fz}px ${FT_B}`; pdfTexto(g, pdfLineas(g, z.nombre || `Pieza ${i + 1}`, w - 24, 1)[0], x + 12, y + w + 4, { size: fz, col: vend ? PAL.muted : PAL.ink });
+  pdfTexto(g, vend ? 'Vendida' : ap ? 'Apartada' : precioCorto(precioPieza(p, z)), x + 12, y + w + 8 + fz * 1.25, { size: Math.round(fz * 1.3), peso: 400, fam: FT_T, col: vend ? PAL.muted : ap ? PAL.ink : PAL.pink });
+  if (!z.vendida && t.whatsapp) {
+    iconoChat(g, x + w - 26, y + w + 8 + fz * 1.9, 15, PAL.green);
+    links.push({ x, y, w, h, url: waLink(t.whatsapp, msjWA(t, `la pieza #${i + 1}${z.nombre ? ' (' + z.nombre + ')' : ''} del set ${p.nombre} · ${precioCorto(precioPieza(p, z))}`)) });
+  }
+}
+/* Set: una página con la foto grupal y cada pieza identificada */
+function setPDF(g, p, idx, im, fotosPz, links, t, BOT) {
+  let yy = 200;
+  const R = 118, mx = PW - MG - R + 10, my = 300;
+  pdfTexto(g, (p.categoria || 'Novedad').toUpperCase() + ' · SET', MG, yy, { size: 22, col: PAL.purple, esp: 3 }); yy += 40;
+  g.font = `400 60px ${FT_T}`; pdfLineas(g, p.nombre, PW - MG * 2 - R * 2 - 30, 2).forEach(l => { pdfTexto(g, l, MG, yy, { size: 60, peso: 400, fam: FT_T }); yy += 74; });
+  yy += 10;
+  const st = stockDe(p); let cx = MG;
+  [[`Set de ${p.piezas.length} piezas`], st === 1 ? ['¡Última pieza!', PAL.pink, '#fff'] : [`${st} disponibles`], ...(p.codigo ? [[`#${p.codigo}`, '#fff']] : [])]
+    .forEach(([txt, fondo, tinta]) => { cx += pildora(g, txt, cx, yy, { fondo, tinta, size: 24 }) + 12; });
+  if (t.whatsapp) boton(g, 'Lo quiero', cx + 8, yy - 6, links, waLink(t.whatsapp, msjWA(t, `el set ${p.nombre}${p.codigo ? ' (' + p.codigo + ')' : ''} · ${precioCorto(precioPieza(p, {}))} c/u`)), { size: 24, h: 58 });
+  yy = Math.max(yy + 76, my + R + 10);
+  onomatopeya(g, precioCorto(precioPieza(p, {})), 'c/u', mx, my, idx, R);
+  // cuadrícula de piezas: busca el número de columnas que deja la foto grupal más grande
+  const n = p.piezas.length, AW = PW - MG * 2, GAP = 20, HEAD = 70;
+  let cols = Math.min(n, n <= 4 ? 4 : n <= 6 ? 3 : n <= 8 ? 4 : 5), cw, rows, gh, imgH;
+  for (;;) {
+    cw = Math.min(250, (AW - (cols - 1) * GAP) / cols); rows = Math.ceil(n / cols); gh = rows * (cw + 84) + (rows - 1) * GAP;
+    imgH = BOT - yy - HEAD - gh - 40;
+    if (imgH >= 340 || cols >= 10 || cols >= n) break;
+    cols++;
+  }
+  imgH = clamp(imgH, 240, 640);
+  const iw = AW - 34;
+  escenario(g, MG, yy, iw, imgH, idx, 30, 26);
+  dibujarFoto(g, im, p, MG, yy, iw, imgH, 44);
+  yy += imgH + 46;
+  titular(g, 'PIEZAS DEL SET', MG - 6, yy, { size: 32, sub: `${st} de ${n} disponibles` });
+  yy += HEAD;
+  p.piezas.forEach((z, i) => {
+    const fila = Math.floor(i / cols), enFila = Math.min(cols, n - fila * cols), tw = enFila * cw + (enFila - 1) * GAP;   // la última fila va centrada
+    piezaPDF(g, p, z, i, MG + (AW - tw) / 2 + (i % cols) * (cw + GAP), yy + fila * (cw + 84 + GAP), cw, fotosPz[i], im, links, t);
+  });
+}
+/* Portada: índice con enlaces y cómo pedir */
+function indicePDF(g, t, secciones, links) {
+  let yy = 640;
+  titular(g, '¿QUÉ ENCONTRARÁS?', MG, yy, { size: 40 }); yy += 92;
+  secciones.forEach(sec => {
+    g.font = `800 26px ${FT_B}`;
+    pildora(g, `${sec.titulo} · ${sec.total}`, MG, yy, { fondo: sec.color, tinta: sec.color === PAL.yellow ? PAL.ink : '#fff', size: 26 }); yy += 66;
+    sec.cats.forEach(c => {
+      const txt = c.cat, pag = c.desde === c.hasta ? `pág. ${c.desde + 1}` : `págs. ${c.desde + 1}–${c.hasta + 1}`;
+      pdfTexto(g, txt, MG + 34, yy, { size: 28, peso: 700 });
+      g.font = `700 28px ${FT_B}`; const w1 = g.measureText(txt).width;
+      const der = `${c.n} · ${pag}`; g.font = `800 26px ${FT_B}`; const w2 = g.measureText(der).width;
+      pdfTexto(g, der, PW - MG, yy + 2, { size: 26, col: PAL.purple, al: 'right' });
+      g.fillStyle = 'rgba(124,58,237,.35)'; for (let x = MG + 34 + w1 + 18; x < PW - MG - w2 - 18; x += 14) { g.beginPath(); g.arc(x, yy + 20, 2.5, 0, 7); g.fill(); }
+      g.fillStyle = PAL.pink; g.beginPath(); g.arc(MG + 14, yy + 17, 7, 0, 7); g.fill();
+      links.push({ x: MG, y: yy - 8, w: PW - MG * 2, h: 48, page: c.desde });
+      yy += 50;
+    });
+    yy += 16;
+  });
+  // cómo pedir
+  const y0 = Math.max(yy + 20, PH - 420), pasos = [['Elige tu', 'favorito'], ['Toca', '«Lo quiero»'], ['Confirma por', 'WhatsApp']];
+  pdfTexto(g, '¿CÓMO PEDIR?', MG, y0, { size: 22, col: PAL.purple, esp: 3 });
+  const cy = y0 + 110, xs = [0, 1, 2].map(i => MG + 150 + i * (PW - MG * 2 - 300) / 2);
+  g.save(); g.setLineDash([12, 12]); g.lineWidth = 5; g.strokeStyle = PAL.pink; g.beginPath(); g.moveTo(xs[0], cy); g.lineTo(xs[2], cy); g.stroke(); g.restore();
+  xs.forEach((x, i) => {
+    const [c1, c2] = ESCENARIOS[i], grd = g.createLinearGradient(x - 56, cy - 56, x + 56, cy + 56); grd.addColorStop(0, c1); grd.addColorStop(1, c2);
+    sombraTinta(g, c => { g.beginPath(); g.arc(x, cy, 56, 0, 7); g.fillStyle = c || grd; g.fill(); if (!c) { g.lineWidth = 5; g.strokeStyle = PAL.ink; g.stroke(); } }, 5, 5);
+    sombraTinta(g, c => pdfTexto(g, String(i + 1), x, cy + 3, { size: 58, peso: 400, fam: FT_T, col: c || '#fff', al: 'center', base: 'middle' }), 3, 3);
+    pasos[i].forEach((l, k) => pdfTexto(g, l, x, cy + 76 + k * 34, { size: 26, col: k ? PAL.purple : PAL.ink, al: 'center' }));
+  });
+}
+/* Contraportada */
+function contraPDF(g, t, logo, mid, links) {
+  const grd = g.createLinearGradient(0, 0, PW, PH); grd.addColorStop(0, PAL.pink); grd.addColorStop(1, PAL.purple);
+  g.save(); g.beginPath(); g.moveTo(0, 0); g.lineTo(PW, 0); g.lineTo(PW, 560); g.lineTo(0, 640); g.closePath(); g.fillStyle = grd; g.fill(); g.clip(); rayas(g, 0, 0, PW, 640, 'rgba(255,255,255,.09)', 30, 10); g.restore();
+  [[140, 120, 20], [1130, 90, 16], [1060, 180, 9], [240, 520, 12], [980, 470, 14]].forEach(([x, y, r]) => destello(g, x, y, r, 'rgba(255,255,255,.85)'));
+  const cw = 360, ch = 460, cx = (PW - cw) / 2, cy = 110;
+  sombraTinta(g, c => { g.beginPath(); g.roundRect(cx, cy, cw, ch, 48); g.fillStyle = c || '#fff'; g.fill(); if (!c) { g.lineWidth = 6; g.strokeStyle = PAL.ink; g.stroke(); } }, 12, 12);
+  if (logo) { const sc = Math.min((cw - 50) / logo.naturalWidth, (ch - 50) / logo.naturalHeight), w = logo.naturalWidth * sc, h = logo.naturalHeight * sc; g.drawImage(logo, cx + (cw - w) / 2, cy + (ch - h) / 2, w, h); }
+  else { const z = pdfAjustar(g, t.nombre || tiendaNombre(), cw - 40, 60, 400, FT_T); pdfTexto(g, t.nombre || tiendaNombre(), PW / 2, cy + ch / 2, { size: z, peso: 400, fam: FT_T, al: 'center', base: 'middle' }); }
+  let mw = 0; if (mid) { const mh = 520; mw = mh * mid.naturalWidth / mid.naturalHeight; g.drawImage(mid, PW - MG - mw + 30, PH - 124 - mh + 10, mw, mh); }
+  const bx = MG, bmax = PW - MG * 2 - mw + 10; let yy = 720;
+  const tz = pdfAjustar(g, '¡Gracias por visitarnos!', bmax, 66, 400, FT_T);
+  sombraTinta(g, c => pdfTexto(g, '¡Gracias por visitarnos!', bx, yy, { size: tz, peso: 400, fam: FT_T, col: c || PAL.pink }), 4, 4); yy += tz + 34;
+  g.font = `700 30px ${FT_B}`;
+  [t.mensaje, t.direccion && '📍 ' + t.direccion, t.redes].filter(Boolean).forEach(m => pdfLineas(g, m, bmax, 2).forEach(l => { pdfTexto(g, l, bx, yy, { size: 30, peso: 700, col: PAL.muted }); yy += 44; }));
+  yy += 26;
+  if (t.whatsapp) { boton(g, 'Escríbenos por WhatsApp', bx, yy, links, waLink(t.whatsapp, `Hola ${t.nombre || tiendaNombre()} 👋`), { size: 30, h: 76 }); yy += 112; }
+  if (S.tienda.catalogo && DB === FB) {
+    pdfTexto(g, 'CATÁLOGO EN LÍNEA, SIEMPRE ACTUALIZADO', bx, yy, { size: 20, col: PAL.purple, esp: 2 }); yy += 34;
+    const u = urlCatalogo(), w = pdfTexto(g, u.replace(/^https?:\/\//, ''), bx, yy, { size: 26, peso: 800, col: PAL.ink });
+    links.push({ x: bx, y: yy - 6, w, h: 44, url: u });
   }
 }
 async function construirPDF(paginas) {
@@ -1690,13 +1807,14 @@ async function construirPDF(paginas) {
   const k = 612 / PW, cs = 'q 612 0 0 792 0 0 cm /Im0 Do Q';
   for (let i = 0; i < paginas.length; i++) {
     const pg = paginas[i], o = ids[i];
-    const jpg = new Uint8Array(await (await new Promise(r => pg.canvas.toBlob(r, 'image/jpeg', .88))).arrayBuffer());
+    const jpg = new Uint8Array(await (await new Promise(r => pg.canvas.toBlob(r, 'image/jpeg', .85))).arrayBuffer());
     obj(o.page, () => push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /XObject << /Im0 ${o.img} 0 R >> >> /Contents ${o.cont} 0 R${o.links.length ? ` /Annots [${o.links.map(n => n + ' 0 R').join(' ')}]` : ''} >>`));
     obj(o.cont, () => push(`<< /Length ${cs.length} >>\nstream\n${cs}\nendstream`));
     obj(o.img, () => { push(`<< /Type /XObject /Subtype /Image /Width ${pg.canvas.width} /Height ${pg.canvas.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpg.length} >>\nstream\n`); push(jpg); push('\nendstream'); });
     pg.links.forEach((l, j) => obj(o.links[j], () => {
       const r = [l.x * k, 792 - (l.y + l.h) * k, (l.x + l.w) * k, 792 - l.y * k].map(v => v.toFixed(2)).join(' ');
-      push(`<< /Type /Annot /Subtype /Link /Rect [${r}] /Border [0 0 0] /A << /S /URI /URI (${l.url.replace(/[\\()]/g, m => '\\' + m)}) >> >>`);
+      const destino = l.page != null ? `/Dest [${ids[l.page].page} 0 R /Fit]` : `/A << /S /URI /URI (${l.url.replace(/[\\()]/g, m => '\\' + m)}) >>`;
+      push(`<< /Type /Annot /Subtype /Link /Rect [${r}] /Border [0 0 0] ${destino} >>`);
     }));
   }
   const xref = len;
@@ -1710,26 +1828,42 @@ async function catalogoPDF(cat = '', soloPaginas = false) {
   const ps = [...S.productos.values()].filter(p => stockDe(p) > 0 && !p.oculto && (!cat || p.categoria === cat))
     .sort((a, b) => (a.categoria || '~').localeCompare(b.categoria || '~') || a.nombre.localeCompare(b.nombre));
   if (!ps.length) throw new Error('No hay productos con existencia para el catálogo');
-  const portadas = new Map((await DB.todos('fotos')).filter(f => f.portada).map(f => [f.pid, f.foto]));
+  const fotos = await DB.todos('fotos'), porId = new Map(fotos.map(f => [f.id, f.foto])), portadas = new Map(fotos.filter(f => f.portada).map(f => [f.pid, f.foto]));
   const img = src => src ? cargarImg(src).catch(() => null) : Promise.resolve(null);
-  const [logo, mPortada, mFin, ...mPie] = await Promise.all([img(logoActual()), img(IMG.m03), img(IMG.m11), ...['m09', 'm05', 'm07', 'm10', 'm02', 'm06'].map(k => img(IMG[k]))]);
-  const filas = []; let prev = null;
-  ps.forEach(p => { const c = p.categoria || 'Novedades'; if (c !== prev) { filas.push({ tipo: 'cat', c, n: ps.filter(x => (x.categoria || 'Novedades') === c).length }); prev = c; } filas.push({ tipo: 'p', p }); });
-  const H_CAT = 92, H_ROW = 388, H_FIN = 330, TOP1 = 600, TOP = 180, BOT = PH - 160, pags = [[]];
-  let y = TOP1;
-  filas.forEach(f => { const h = f.tipo === 'cat' ? H_CAT : H_ROW, need = f.tipo === 'cat' ? H_CAT + H_ROW : h; if (y + need > BOT) { pags.push([]); y = TOP; } pags.at(-1).push({ ...f, y }); y += h; });
-  if (y + H_FIN > BOT) { pags.push([]); y = TOP; } pags.at(-1).push({ tipo: 'fin', y: y + Math.max(30, (BOT - y - H_FIN) * .45) });
+  const [logo, mPortada, mFin, mRelleno, ...mPie] = await Promise.all([img(logoActual()), img(IMG.m03), img(IMG.m11), img(IMG.m06), ...['m09', 'm05', 'm07', 'm10', 'm02', 'm01'].map(k => img(IMG[k]))]);
+  // páginas: portada · individuales (2 por página) · sets (1 por página) · contraportada
+  const ind = ps.filter(p => !esSet(p)), sets = ps.filter(esSet), pags = [{ tipo: 'portada' }];
+  for (let i = 0; i < ind.length; i += 2) pags.push({ tipo: 'ind', items: ind.slice(i, i + 2) });
+  sets.forEach(p => pags.push({ tipo: 'set', p }));
+  pags.push({ tipo: 'fin' });
+  const agrupar = (lista, pagDe) => { const m = new Map(); lista.forEach((p, k) => { const c = p.categoria || 'Novedades', pg = pagDe(k), e = m.get(c); if (e) { e.n++; e.hasta = pg; } else m.set(c, { cat: c, n: 1, desde: pg, hasta: pg }); }); return [...m.values()]; };
+  const secciones = [
+    ind.length && { titulo: 'Piezas individuales', total: ind.length, color: PAL.pink, cats: agrupar(ind, k => 1 + Math.floor(k / 2)) },
+    sets.length && { titulo: 'Sets y colecciones', total: sets.length, color: PAL.purple, cats: agrupar(sets, k => 1 + Math.ceil(ind.length / 2) + k) }].filter(Boolean);
   const out = []; let idx = 0;
   for (let i = 0; i < pags.length; i++) {
-    const c = document.createElement('canvas'); c.width = PW; c.height = PH;
+    const pg = pags[i], c = document.createElement('canvas'); c.width = PW; c.height = PH;
     const g = c.getContext('2d'), links = [];
-    fondoPagina(g); encabezado(g, i, pags.length, t, logo, ps.length, mPortada);
-    for (const f of pags[i]) {
-      if (f.tipo === 'cat') categoriaPDF(g, f, f.y);
-      else if (f.tipo === 'fin') cierrePDF(g, f.y, t, mFin, links);
-      else productoPDF(g, f, f.y, idx++, await img(portadas.get(f.p.id) || f.p.foto), links, t);
+    fondoPagina(g);
+    if (pg.tipo === 'portada') { encabezado(g, 0, pags.length, t, logo, ps.length, mPortada); indicePDF(g, t, secciones, links); }
+    else if (pg.tipo === 'fin') contraPDF(g, t, logo, mFin, links);
+    else {
+      encabezado(g, i, pags.length, t, logo, ps.length, null, pg.tipo === 'set' ? 'SETS' : 'PIEZAS INDIVIDUALES');
+      if (pg.tipo === 'ind') {
+        const top = 176, h = (PH - 150 - top) / 2;
+        for (let k = 0; k < 2; k++) {
+          const p = pg.items[k], y0 = top + k * h;
+          if (p) individualPDF(g, p, y0, h, k, idx++, await img(portadas.get(p.id) || p.foto), links, t);
+          else rellenoPDF(g, y0, h, t, mRelleno, links);
+        }
+        g.save(); g.setLineDash([4, 14]); g.lineCap = 'round'; g.lineWidth = 5; g.strokeStyle = 'rgba(124,58,237,.25)'; g.beginPath(); g.moveTo(MG + 60, top + h); g.lineTo(PW - MG - 60, top + h); g.stroke(); g.restore();
+        destello(g, PW / 2, top + h, 14, PAL.pink);
+      } else {
+        const p = pg.p, fotosPz = await Promise.all(p.piezas.map(z => img(z.fid && porId.get(z.fid))));
+        setPDF(g, p, idx++, await img(portadas.get(p.id) || p.foto), fotosPz, links, t, PH - 178);
+      }
     }
-    piePDF(g, i, pags.length, t, i === pags.length - 1 ? null : mPie[i % mPie.length], links);
+    piePDF(g, i, pags.length, t, pg.tipo === 'ind' || pg.tipo === 'set' ? mPie[i % mPie.length] : null, links);
     out.push({ canvas: c, links });
   }
   return soloPaginas ? out : construirPDF(out);
@@ -2180,7 +2314,7 @@ function abrirDetalle(id) {
       <div class="det-photo">${fotoHTML({ ...p, foto: pf }, { cls: 'big' + (set ? ' inter' : ''), sel: c.sel })}
         ${set && !p.foto ? `<div class="pz-list">${p.piezas.map((z, i) => `<button type="button" class="pzchip${z.vendida ? ' off' : ''}${c.sel.includes(z.id) ? ' on' : ''}" data-act="selPz" data-id="${z.id}">#${i + 1}${z.nombre ? ' ' + esc(z.nombre) : ''}</button>`).join('')}</div>` : ''}
         ${set ? `<p class="hint">👆 Toca las piezas para seleccionarlas · ${c.sel.length} seleccionada(s)</p>` : ''}
-        ${p.foto && c.gal?.length ? `<div class="gal">${[pf, ...c.gal.map(f => f.foto)].map((f, i) => `<div class="gth${i ? '' : ' cover'}" data-act="verFoto" data-i="${i}"><img src="${f}" alt="">${i ? '' : '<em>Portada</em>'}</div>`).join('')}</div>` : ''}</div>
+        ${p.foto && c.gal?.length ? `<div class="gal">${[{ foto: pf }, ...c.gal].map((f, i) => { const nums = i ? pzDeFoto(p, f.id) : []; return `<div class="gth${i ? '' : ' cover'}" data-act="verFoto" data-i="${i}"><img src="${f.foto}" alt="">${i ? (nums.length ? `<em>#${nums.join(', #')}</em>` : '') : '<em>Portada</em>'}</div>`; }).join('')}</div>` : ''}</div>
       <div><div class="row-btns" style="margin:0"><span class="badge st-${estado(p)}">${set ? `${st} de ${p.piezas.length} piezas` : `${st} en stock`}</span>
           ${p.categoria ? `<span class="tag">${esc(p.categoria)}</span>` : ''}${p.codigo ? `<span class="tag">#${esc(p.codigo)}</span>` : ''}${set ? '<span class="tag">🧩 Set</span>' : ''}</div>
         <div class="prices"><div><small>Costo</small><b>${money(p.costo)}</b></div><div><small>Sugerido</small><b>${money(p.precioSugerido)}</b></div>
@@ -2243,7 +2377,7 @@ async function abrirEditor(id) {
     mgTxt(r, c.d);
     $$('[data-foto]', r).forEach(i => i.onchange = async () => {
       const f = i.files[0]; i.value = ''; if (!f) return;
-      if (c.d.foto && 1 + c.gal.length >= MAX_FOTOS) return toast(`Máximo ${MAX_FOTOS} fotos por producto`, 'warn');
+      if (c.d.foto && 1 + c.gal.length >= maxFotos(c.d)) return toast(`Máximo ${maxFotos(c.d)} fotos por producto`, 'warn');
       const crop = await recortar(f); if (!crop) return;
       toast('Procesando foto… 📸');
       try {
@@ -2259,9 +2393,10 @@ async function abrirEditor(id) {
 function galEd(c) {
   const d = c.d; if (!d.foto) return '';
   const fs = [{ id: '', foto: d.foto }, ...c.gal];
-  return `<div class="gal">${fs.map((f, i) => `<div class="gth${i ? '' : ' cover'}"><img src="${f.foto}" alt="">${i
-    ? `<button type="button" class="gb star" data-act="galCover" data-id="${f.id}" aria-label="Hacer portada">⭐</button>` : '<em>⭐ Portada</em>'}<button type="button" class="gb del" data-act="galDel" data-id="${f.id}" aria-label="Quitar foto">✕</button></div>`).join('')}</div>
-    <p class="hint">${fs.length}/${MAX_FOTOS} fotos · toca ⭐ para elegir la portada${esSet(d) ? ' (las marcas de piezas van sobre la portada)' : ''}</p>`;
+  return `<div class="gal">${fs.map((f, i) => { const nums = i ? pzDeFoto(d, f.id) : [];
+    return `<div class="gth${i ? '' : ' cover'}"><img src="${f.foto}" alt="">${i
+    ? `<button type="button" class="gb star" data-act="galCover" data-id="${f.id}" aria-label="Hacer portada">⭐</button>${nums.length ? `<em>Pieza #${nums.join(', #')}</em>` : ''}` : '<em>⭐ Portada</em>'}<button type="button" class="gb del" data-act="galDel" data-id="${f.id}" aria-label="Quitar foto">✕</button></div>`; }).join('')}</div>
+    <p class="hint">${fs.length}/${maxFotos(d)} fotos · toca ⭐ para elegir la portada${esSet(d) ? ' (las marcas de piezas van sobre la portada; toca una pieza para asignarle su foto individual)' : ''}</p>`;
 }
 const leerForm = (d, r) => $$('[data-f]', r).forEach(i => d[i.dataset.f] = i.value);
 function mgTxt(r, d) {
@@ -2281,6 +2416,10 @@ function pzArea(c) {
     ${z ? `<div class="card pz-panel"><b>Pieza #${i + 1}</b>
       <div class="two"><label>Nombre<input data-pz="nombre" value="${esc(z.nombre)}" placeholder="Ej. Gatito azul"></label>
         <label>Precio propio<input data-pz="precio" type="number" inputmode="decimal" min="0" step="any" value="${esc(z.precio)}" placeholder="${r2(precioDe(d) / nPz(d))}"></label></div>
+      <div class="pz-foto"><small class="meta">📷 Foto individual de la pieza #${i + 1} · se usa en el catálogo PDF</small>
+        <div class="gal">${c.gal.map(f => `<div class="gth${z.fid === f.id ? ' cover' : ''}" data-act="pzFoto" data-id="${f.id}"><img src="${f.foto}" alt="">${z.fid === f.id ? '<em>✓ Esta pieza</em>' : ''}</div>`).join('')}
+          <label class="gth gadd" title="Tomar o elegir foto de esta pieza">＋<input type="file" accept="image/*" data-pzfoto hidden></label></div>
+        ${z.fid ? '' : '<small class="meta">Sin foto propia: el catálogo recortará esta pieza de la foto grupal.</small>'}</div>
       <div class="row-btns"><button type="button" class="btn sm" data-act="pzToggle">${z.vendida ? '♻️ Marcar disponible' : '🚫 Marcar vendida'}</button><button type="button" class="btn sm danger" data-act="pzDel">🗑️ Quitar marca</button></div></div>` : ''}`;
 }
 const refreshPz = (r, c) => { $('#pzArea', r).innerHTML = pzArea(c); bindPz(r, c); };
@@ -2304,6 +2443,14 @@ function bindPz(r, c) {
   ph.onpointercancel = () => st = null;
   $('[data-ms]', r).oninput = e => { d.ms = num(e.target.value); ph.style.setProperty('--ms', d.ms); };
   $$('[data-pz]', r).forEach(i => i.oninput = () => { const z = d.piezas.find(z => z.id === c.sel); if (z) z[i.dataset.pz] = i.value; });
+  $$('[data-pzfoto]', r).forEach(i => i.onchange = async () => {
+    const f = i.files[0]; i.value = ''; const z = d.piezas.find(z => z.id === c.sel); if (!f || !z) return;
+    if (1 + c.gal.length >= maxFotos(d)) return toast(`Máximo ${maxFotos(d)} fotos por producto`, 'warn');
+    const crop = await recortar(f); if (!crop) return;
+    toast('Procesando foto… 📸');
+    try { const img = await procesarImagen(f, crop), id = uid(); c.gal.push({ id, pid: d.id, ...img, t: Date.now(), nuevo: true }); z.fid = id; leerForm(d, sheetRoot()); drawSheet(); say(`¡Foto de la pieza #${d.piezas.indexOf(z) + 1} lista! 📸`); }
+    catch (e) { toast(e.message, 'err'); }
+  });
 }
 
 /* ---------- Acciones ---------- */
@@ -2436,6 +2583,7 @@ const ACT = {
   verFoto: a => { const c = ctx(), p = S.productos.get(c.id); abrirVisor([c.cover || p.foto, ...(c.gal || []).map(f => f.foto)].filter(Boolean), +a.dataset.i); },
   calcPrecio: () => { const c = ctx(), r = sheetRoot(); leerForm(c.d, r); c.d.precioVenta = r2(num(c.d.costo) * (1 + num(cfg.margen) / 100)); $('[data-f=precioVenta]', r).value = c.d.precioVenta; mgTxt(r, c.d); },
   pzSel: a => { const c = ctx(); c.sel = c.sel === a.dataset.id ? null : a.dataset.id; refreshPz(sheetRoot(), c); },
+  pzFoto: a => { const c = ctx(), z = c.d.piezas.find(z => z.id === c.sel); if (!z) return; leerForm(c.d, sheetRoot()); if (z.fid === a.dataset.id) delete z.fid; else z.fid = a.dataset.id; drawSheet(); },
   pzToggle: () => { const c = ctx(), z = c.d.piezas.find(z => z.id === c.sel); z.vendida = !z.vendida; refreshPz(sheetRoot(), c); },
   pzDel: () => { const c = ctx(); c.d.piezas = c.d.piezas.filter(z => z.id !== c.sel); c.sel = null; refreshPz(sheetRoot(), c); },
   pzClear: () => { const c = ctx(); if (confirm('¿Borrar todas las marcas?')) { c.d.piezas = []; c.sel = null; refreshPz(sheetRoot(), c); } },
@@ -2445,7 +2593,7 @@ const ACT = {
     if (!d.nombre) return toast('Ponle nombre al producto', 'warn');
     if (esSet(d) && !d.piezas.length && !confirm('El set no tiene piezas marcadas en la foto. ¿Guardar así?')) return;
     ['costo', 'precioSugerido', 'precioVenta', 'stock', 'stockMin'].forEach(k => d[k] = num(d[k]));
-    d.piezas.forEach(z => z.precio = z.precio === '' || z.precio == null ? '' : num(z.precio));
+    d.piezas.forEach(z => { z.precio = z.precio === '' || z.precio == null ? '' : num(z.precio); if (z.fid && !c.gal.some(f => f.id === z.fid)) delete z.fid; });
     if (esSet(d)) d.stock = stockDe(d);
     else if (!c.nuevo) d.stock = stockDe(S.productos.get(d.id) || d);    // el stock vigente (pudo cambiar por una venta mientras editabas)
     d.actualizado = Date.now(); a.disabled = true;

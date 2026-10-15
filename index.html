@@ -96,6 +96,7 @@ a.btn{color:var(--ink)}
 .seg button{flex:1;border:0;background:#fff;padding:10px 6px;font-weight:800;cursor:pointer}
 .seg button+button{border-left:2.5px solid var(--ink)}
 .seg button.on{background:var(--cyan)}
+.cl .seg{margin:8px 0 2px;grid-column:1/-1}.cl .seg button{padding:7px 4px;font-size:.85rem}.cl > .meta{grid-column:1/-1}
 .badge{display:inline-block;font:800 .75rem var(--f1);padding:3px 9px;border-radius:99px;border:2px solid var(--ink);background:var(--green);color:#fff}
 .st-bajo{background:var(--yellow);color:var(--ink)}
 .st-agotado{background:var(--red)}
@@ -278,6 +279,122 @@ a.btn{color:var(--ink)}
 .ct-row.hecho{background:linear-gradient(90deg,#e9fff4,transparent)}
 body.catalogo .nav,body.catalogo #modePill{display:none}
 body.catalogo main{padding-bottom:30px}
+/* ---------- Catálogo web (estilo del PDF) ---------- */
+body.catalogo .top{display:none}
+body.catalogo main{padding:0;max-width:none}
+.cw{overflow-x:clip;--pk:#ff4fa3;--pu:#7c3aed;--cy:#22d3ee;--ye:#ffd23f;--li:#f3e8ff;--mu:#6b5a8e;--gr:#16c784;--tinta:#2a1650;min-height:100vh;color:var(--tinta);
+  background:radial-gradient(circle at 96% 30%,rgba(255,79,163,.07) 0 260px,transparent 261px),radial-gradient(circle at 2% 62%,rgba(34,211,238,.08) 0 300px,transparent 301px),
+  radial-gradient(rgba(124,58,237,.1) 2px,transparent 2.5px) 0 0/28px 28px,#fffaf5}
+.cw-in{max-width:1080px;margin:0 auto;padding:0 clamp(16px,4vw,40px)}
+.cw h1,.cw h2,.cw h3,.cw h4{font-family:var(--f2);font-weight:400;margin:0;line-height:1.12}
+.cw-hero{position:relative;color:#fff;padding:calc(26px + env(safe-area-inset-top)) 0 clamp(70px,10vw,110px);
+  background:repeating-linear-gradient(-45deg,rgba(255,255,255,.09) 0 10px,transparent 10px 30px),linear-gradient(90deg,var(--pk),var(--pu));clip-path:polygon(0 0,100% 0,100% 84%,0 100%)}
+.cw-hero .cw-in{display:grid;grid-template-columns:auto 1fr auto;gap:clamp(14px,3vw,36px);align-items:center}
+.cw-logo{background:#fff;border:4px solid var(--tinta);border-radius:clamp(18px,3vw,32px);box-shadow:8px 8px 0 var(--tinta);padding:clamp(8px,1.4vw,16px);width:clamp(92px,20vw,210px);aspect-ratio:300/384;display:grid;place-items:center}
+.cw-logo img{max-width:100%;max-height:100%;object-fit:contain}
+.cw-tit h1{font-size:clamp(1.9rem,8vw,5.6rem);text-shadow:5px 5px 0 var(--tinta);letter-spacing:.02em}
+.cw-nom{font-weight:800;letter-spacing:.12em;margin:.2em 0 0;opacity:.95}
+.cw-esl{font-weight:800;font-size:clamp(1rem,2.6vw,1.5rem);margin:.25em 0 .6em}
+.cw-mid{position:relative;align-self:end;width:clamp(100px,22vw,240px)}
+.cw-mid img{width:100%;display:block;filter:drop-shadow(0 6px 0 rgba(42,22,80,.25))}
+.cw-globo{position:absolute;right:62%;bottom:-6%;width:max-content;max-width:min(52vw,250px);background:#fff;color:var(--pu);font-weight:800;font-size:clamp(.78rem,2vw,1.05rem);text-align:center;
+  border:3px solid var(--tinta);border-radius:20px;padding:.6em .9em;box-shadow:5px 5px 0 var(--tinta)}
+.cw-pills{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.cw-pill{display:inline-block;border:2.5px solid var(--tinta);border-radius:99px;padding:.32em .95em;font-weight:800;font-size:clamp(.8rem,1.9vw,1rem);background:var(--li);color:var(--tinta)}
+.cw-pill.rosa{background:var(--pk);color:#fff}.cw-pill.blanca{background:#fff}.cw-pill.amarilla{background:var(--ye)}
+.cw-btn{display:inline-flex;align-items:center;gap:.55em;background:var(--gr);color:#fff;text-decoration:none;font-weight:800;font-size:clamp(1rem,2.4vw,1.3rem);
+  border:3px solid var(--tinta);border-radius:99px;padding:.5em 1.3em .5em .7em;box-shadow:5px 5px 0 var(--tinta);transition:transform .12s,box-shadow .12s}
+.cw-btn:active{transform:translate(3px,3px);box-shadow:2px 2px 0 var(--tinta)}
+.cw-btn .cw-chat{width:1.45em;color:#fff}.cw-btn .cw-chat g{fill:var(--gr)}
+.cw-btn.grande{font-size:clamp(1.05rem,2.8vw,1.45rem)}
+.cw-como{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(8px,2vw,22px);margin:clamp(-36px,-4vw,-20px) 0 18px;position:relative}
+.cw-como div{background:#fff;border:3px solid var(--tinta);border-radius:22px;box-shadow:5px 5px 0 var(--tinta);padding:12px 8px;text-align:center}
+.cw-como span{display:inline-grid;place-items:center;width:2.1em;height:2.1em;border-radius:50%;background:var(--pk);color:#fff;border:2.5px solid var(--tinta);font:400 1.1rem var(--f2)}
+.cw-como p{margin:.4em 0 0;font-weight:800;font-size:clamp(.82rem,2.2vw,1.05rem)}.cw-como b{display:block;color:var(--pu)}
+.cw-bar{position:sticky;top:0;z-index:20;padding:10px 0 2px;background:linear-gradient(#fffaf5 75%,rgba(255,250,245,0))}
+.cw .cw-titular{display:flex;align-items:flex-end;flex-wrap:wrap;gap:6px 14px;margin:clamp(30px,6vw,56px) 0 clamp(18px,4vw,34px)}
+.cw-titular span{position:relative;padding-left:1.25em;font-size:clamp(1.35rem,4.4vw,2.3rem);letter-spacing:.04em}
+.cw-titular span::before{content:'✦';position:absolute;left:0;color:var(--pk)}
+.cw-titular span::after{content:'';position:absolute;left:1.25em;right:0;bottom:-.32em;height:.2em;border-radius:9px;background:linear-gradient(90deg,var(--pk),var(--pu))}
+.cw-titular small{font-weight:800;color:var(--mu);font-size:clamp(.9rem,2.2vw,1.1rem)}
+h4.cw-titular span{font-size:clamp(1.1rem,3.4vw,1.7rem)}
+.cw-cat{display:block;color:var(--pu);font-weight:800;letter-spacing:.2em;font-size:clamp(.72rem,1.8vw,.95rem)}
+.cw-txt h3{font-size:clamp(1.35rem,4.6vw,2.7rem);margin:.25em 0 0;overflow-wrap:anywhere}
+.cw-ind{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:clamp(22px,6vw,80px);align-items:center;padding:clamp(18px,4vw,34px) 0}
+.cw-ind.der .cw-tile{order:2}
+.cw-tile,.cw-sfoto{position:relative;cursor:zoom-in}
+.cw-tile{margin:clamp(10px,3vw,24px) 0 0}
+.cw-esc{position:absolute;inset:0;border-radius:clamp(20px,3.4vw,40px);transform:translate(6%,6%);overflow:hidden}
+.cw-ind.der .cw-esc{transform:translate(-6%,6%)}
+.cw-esc::after{content:'';position:absolute;right:0;bottom:0;width:40%;height:40%;background:repeating-linear-gradient(-45deg,rgba(255,255,255,.35) 0 4px,transparent 4px 14px)}
+.cw-ind.der .cw-esc::after{right:auto;left:0}
+.cw-foto{position:relative;background:#fff;border:clamp(3px,.6vw,5px) solid var(--tinta);border-radius:clamp(20px,3.4vw,40px);overflow:hidden}
+.cw-tile .cw-foto{aspect-ratio:1}
+.cw-foto .box{width:100%;height:100%;aspect-ratio:auto;border:0;border-radius:0;background:#fff;padding:5%}
+.cw-foto.grupal .box{padding:clamp(8px,2vw,20px)}
+.cw-foto.grupal .ph{width:min(100%,calc(62vh * var(--ar,1)))}
+.cw-foto.vacia{display:grid;place-items:center;align-content:center;background:repeating-linear-gradient(-45deg,rgba(124,58,237,.08) 0 6px,transparent 6px 22px),var(--li);color:var(--pu)}
+.cw-tile .cw-foto.vacia{aspect-ratio:1}.cw-foto.grupal.vacia{aspect-ratio:16/9}
+.cw-foto.vacia b{font:400 clamp(4rem,16vw,9rem)/1 var(--f2)}.cw-foto.vacia small{font-weight:800;color:var(--mu)}
+.cw-burst{position:absolute;width:clamp(96px,22vw,210px);top:clamp(-46px,-6vw,-20px);left:clamp(-46px,-6vw,-20px);overflow:visible;pointer-events:none;filter:drop-shadow(0 0 0 transparent)}
+.cw-ind.der .cw-burst{left:auto;right:clamp(-46px,-6vw,-20px)}
+.cw-linea{position:relative;height:5px;border-radius:3px;background:var(--pk);margin:16px 0 4px;margin-left:calc(-1 * clamp(22px,6vw,80px) + 8px)}
+.cw-linea::before{content:'';position:absolute;left:-6px;top:50%;width:18px;height:18px;border-radius:50%;background:var(--pk);transform:translateY(-50%)}
+.cw-ind.der .cw-linea{margin-left:0;margin-right:calc(-1 * clamp(22px,6vw,80px) + 8px)}
+.cw-ind.der .cw-linea::before{left:auto;right:-6px}
+.cw-sep{height:18px;margin:4px 6%;background:radial-gradient(circle,#d8c7ff 2.5px,transparent 3px) 0 50%/22px 18px repeat-x;position:relative}
+.cw-sep::after{content:'✦';position:absolute;left:50%;top:50%;transform:translate(-50%,-55%);color:var(--pk);font-size:1.4rem;background:#fffaf5;padding:0 8px}
+.cw-set{padding:clamp(18px,4vw,30px) 0 clamp(26px,5vw,44px);border-bottom:3px dashed #d8c7ff}
+.cw-set:last-child{border-bottom:0}
+.cw-shead{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:start}
+.cw-shead .cw-burst{position:relative;top:0;left:0;width:clamp(100px,20vw,190px)}
+.cw-sfoto{margin:clamp(14px,3vw,24px) clamp(14px,3.4vw,34px) clamp(30px,5vw,46px) 0}
+.cw-sfoto .cw-esc{transform:translate(clamp(14px,3vw,30px),clamp(14px,3vw,26px))}
+.cw-pzs{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(132px,22vw,190px),1fr));gap:clamp(12px,2.4vw,20px)}
+.cw-pz{position:relative;display:flex;flex-direction:column;background:#fff;border:3px solid var(--tinta);border-radius:22px;box-shadow:5px 5px 0 var(--tinta);padding:8px 10px 10px;color:var(--tinta);text-decoration:none}
+a.cw-pz:active{transform:translate(3px,3px);box-shadow:2px 2px 0 var(--tinta)}
+.cw-pzimg{position:relative;display:grid;place-items:center;aspect-ratio:1;border-radius:14px;overflow:hidden;background:#fff var(--simg) no-repeat;margin:-1px -3px 8px}
+.cw-pzimg.vacia{background:var(--li);color:var(--pu);font:400 2.4rem var(--f2)}
+.cw-pzimg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff}
+.cw-sello{position:absolute;inset:0;z-index:1;display:grid;place-items:center;background:rgba(255,250,245,.6)}
+.cw-sello i{font:400 clamp(.8rem,2.4vw,1.1rem)/1 var(--f2);font-style:normal;color:#ff2d55;background:#fff;border:3px solid #ff2d55;border-radius:10px;padding:.45em .7em;transform:rotate(-17deg)}
+.cw-pz.ap .cw-sello i{color:var(--tinta);background:var(--ye);border-color:var(--tinta)}
+.cw-num{position:absolute;left:6px;top:6px;z-index:2;width:2em;height:2em;border-radius:50%;display:grid;place-items:center;background:var(--pk);color:#fff;border:2.5px solid var(--tinta);font:400 .95rem var(--f2)}
+.cw-pz.vend .cw-num{background:#9a8fb0}.cw-pz.ap .cw-num{background:var(--ye);color:var(--tinta)}
+.cw-xn{position:absolute;right:8px;top:10px;z-index:2;background:var(--ye);border:2px solid var(--tinta);border-radius:99px;padding:0 .55em;font-weight:800;font-size:.85rem}
+.cw-pz b{font-size:clamp(.82rem,2vw,.98rem);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:1.8em}
+.cw-pz.vend b{color:var(--mu)}
+.cw-pp{font:400 clamp(1.15rem,3.2vw,1.5rem) var(--f2);color:var(--pk)}.cw-pz.vend .cw-pp{color:var(--mu)}.cw-pz.ap .cw-pp{color:var(--tinta)}
+.cw-pz>.cw-chat{position:absolute;right:10px;bottom:12px;width:1.8em;color:var(--gr)}
+.cw-fin{display:grid;grid-template-columns:auto 1fr auto;gap:clamp(14px,3vw,34px);align-items:center;margin:clamp(36px,7vw,64px) 0 0;padding:clamp(18px,4vw,34px);
+  background:#fff;border:4px solid var(--tinta);border-radius:clamp(24px,4vw,44px);box-shadow:8px 8px 0 var(--tinta)}
+.cw-fin .cw-logo{box-shadow:5px 5px 0 var(--tinta);width:clamp(80px,16vw,170px)}
+.cw-fin h2{font-size:clamp(1.4rem,4.6vw,2.6rem);color:var(--pk);text-shadow:3px 3px 0 var(--tinta);margin-bottom:.35em}
+.cw-fin p{margin:.25em 0;font-weight:700;color:var(--mu);font-size:clamp(.95rem,2.3vw,1.2rem)}
+.cw-fin .cw-btn{margin-top:14px}
+.cw-adios{width:clamp(90px,18vw,200px);align-self:end;margin-bottom:calc(-1 * clamp(18px,4vw,34px))}
+.cw-pie{position:sticky;bottom:0;z-index:25;margin-top:clamp(30px,6vw,50px);background:var(--tinta);color:#fff;border-top:8px solid transparent;
+  border-image:linear-gradient(90deg,var(--pk),var(--ye),var(--cy)) 1;padding-bottom:env(safe-area-inset-bottom)}
+.cw-pie .cw-in{display:flex;align-items:center;gap:14px;min-height:62px;position:relative}
+.cw-pie a{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none}
+.cw-pie .cw-chat{width:34px;color:var(--gr)}.cw-pie .cw-chat g{fill:#fff}
+.cw-pie small{display:block;color:var(--ye);font-weight:800;letter-spacing:.14em;font-size:.68rem}
+.cw-pie b{font:400 clamp(1.05rem,3.4vw,1.5rem) var(--f2)}
+.cw-redes{margin-left:auto;margin-right:clamp(70px,14vw,130px);opacity:.78;font-weight:800;font-size:.9rem}
+.cw-pie img{position:absolute;right:clamp(16px,4vw,40px);bottom:0;height:clamp(76px,13vw,112px)}
+.cw-chat{display:block;flex:none}
+@media (max-width:560px){
+  .cw-hero .cw-in{grid-template-columns:auto 1fr}
+  .cw-mid{display:none}
+  .cw-bar{position:static}
+  .cw-titular small{padding-left:1.6em}
+  .cw-ind{gap:16px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .cw-linea{margin-left:-8px}.cw-ind.der .cw-linea{margin-right:-8px}
+  .cw-btn{padding:.45em 1em .45em .55em}
+  .cw-fin{grid-template-columns:1fr;text-align:center;justify-items:center}
+  .cw-adios{display:none}
+  .cw-redes{display:none}
+}
 @media (orientation:landscape) and (min-width:640px){body.catalogo .top,body.catalogo main{margin-left:0}}
 .slider{display:flex;align-items:center;gap:10px;margin-top:8px}
 .slider input{padding:0;border:0;box-shadow:none!important;accent-color:var(--pink)}
@@ -650,18 +767,18 @@ const FB = {
 let DB = Local;
 /* ---------- Catálogo público: copia sin costos de cada producto en la colección "catalogo" ---------- */
 const pub = p => ({ id: p.id, nombre: p.nombre, categoria: p.categoria || '', codigo: p.codigo || '', tipo: p.tipo, foto: p.foto || '', ar: p.ar || 1, ms: p.ms || 9,
-  precio: precioDe(p), disponible: stockDe(p), piezas: esSet(p) ? p.piezas.map(z => ({ x: z.x, y: z.y, v: z.vendida ? 1 : 0, c: dispPz(z), n: z.nombre || '', p: z.precio === '' || z.precio == null ? null : num(z.precio) })) : [],
+  precio: precioDe(p), disponible: stockDe(p), piezas: esSet(p) ? p.piezas.map(z => ({ x: z.x, y: z.y, v: z.vendida ? 1 : 0, c: dispPz(z), f: z.fid ? 1 : 0, n: z.nombre || '', p: z.precio === '' || z.precio == null ? null : num(z.precio) })) : [],
   actualizado: Date.now() });
 const pubTienda = t => ({ id: '_tienda', nombre: t.nombre || tiendaNombre(), eslogan: t.eslogan || '', whatsapp: t.whatsapp || '', redes: t.redes || '',
-  mensaje: t.mensaje || '', direccion: t.direccion || '', avatar: avatarActual(), actualizado: Date.now() });
+  mensaje: t.mensaje || '', direccion: t.direccion || '', logo: t.logo || '', avatar: avatarActual(), actualizado: Date.now() });
 function espejo(puts, dels) {
   if (DB !== FB) return [puts, dels];
   const p2 = [...puts], d2 = [...dels], on = S.tienda.catalogo;
   puts.forEach(([s, o]) => {
-    if (s === 'productos' && on) o.oculto ? d2.push(['catalogo', o.id]) : p2.push(['catalogo', pub(o)]);
+    if (s === 'productos' && on) o.oculto ? d2.push(['catalogo', o.id], ['catalogo', MEDIA(o.id)]) : p2.push(['catalogo', pub(o)]);
     if (s === 'config' && o.id === 'tienda' && o.catalogo) p2.push(['catalogo', pubTienda(o)]);
   });
-  if (on) dels.forEach(([s, id]) => { if (s === 'productos') d2.push(['catalogo', id]); });
+  if (on) dels.forEach(([s, id]) => { if (s === 'productos') d2.push(['catalogo', id], ['catalogo', MEDIA(id)]); });
   return [p2, d2];
 }
 /* Fotos adicionales: se guardan aparte (colección "fotos") para no rebasar el límite de 1 MB por producto. */
@@ -673,11 +790,26 @@ async function galeria(pid) {
 }
 /* Miniaturas: el producto guarda una foto pequeña (~15 KB) para listas y tarjetas; la portada completa vive en "fotos". */
 const PORTADA = pid => pid + '_p';
-async function miniatura(src, max = 240) {
+async function miniatura(src, max = 240, q = .72) {
   const im = await cargarImg(src), sc = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight));
   const c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * sc); c.height = Math.round(im.naturalHeight * sc);
   c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
-  return c.toDataURL('image/jpeg', .72);
+  return c.toDataURL('image/jpeg', q);
+}
+/* Fotos del catálogo web: portada nítida y fotos de piezas, en un documento aparte (se descarga solo al verse el producto) */
+async function pubMedia(p) {
+  const m = { id: MEDIA(p.id), pid: p.id, tipo: 'media', pz: {}, actualizado: Date.now() };
+  try { const cov = await portadaDe(p); if (cov) m.f = await miniatura(cov, 900, .8); } catch {}
+  if (esSet(p) && p.piezas.some(z => z.fid)) {
+    const gal = await galeria(p.id);
+    for (const [i, z] of p.piezas.entries()) { const f = z.fid && gal.find(g => g.id === z.fid); if (f) try { m.pz[i] = await miniatura(f.foto, 360, .78); } catch {} }
+  }
+  for (const k of Object.keys(m.pz).reverse()) { if (JSON.stringify(m).length < 9e5) break; delete m.pz[k]; }   // límite de 1 MB por documento
+  if (m.f && JSON.stringify(m).length >= 9e5) m.f = await miniatura(m.f, 640, .7);
+  return m;
+}
+async function publicarMedia(ps) {
+  for (let i = 0; i < ps.length; i += 8) await DB.commit((await Promise.all(ps.slice(i, i + 8).map(pubMedia))).map(m => ['catalogo', m]));
 }
 async function portadaDe(p) { return p.fp ? (await galeria(p.id)).find(f => f.portada)?.foto || p.foto : p.foto; }
 let migrando = false, migFallo = false;
@@ -710,7 +842,13 @@ function aplicarCompra(prods, c, dir) {
     if (!p && it.nuevo && dir > 0) p = prods[it.pid] = productoNuevo(it);
     if (!p) { if (dir > 0) throw new Error(`"${it.nombre}" ya no existe`); continue; }
     const cr = num(it.costoReal);
-    if (esSet(p)) {
+    if (esSet(p) && it.copias) {   // set repetido: suma existencias a cada pieza que ya existe
+      const k = it.copias, s0 = stockDe(p), c0 = costoPieza(p);
+      if (dir < 0 && p.piezas.some(z => dispPz(z) < k)) throw new Error(`No puedo cancelar: ya se vendieron o ajustaron piezas de "${p.nombre}" que llegaron en esta compra`);
+      p.piezas.forEach(z => { if (dir > 0) delete z.ap; setCant(z, dispPz(z) + dir * k); });
+      const s1 = stockDe(p), pz = dir > 0 ? (s0 > 0 ? (s0 * c0 + it.cant * cr) / s1 : cr) : (s1 > 0 ? Math.max(0, (s0 * c0 - it.cant * cr) / s1) : c0);
+      p.costo = r2(pz * nPz(p));
+    } else if (esSet(p)) {
       const n0 = p.piezas.length, pv0 = precioDe(p), pp = n0 ? pv0 / n0 : num(it.precio), sp = n0 ? num(p.precioSugerido) / n0 : pp;
       if (dir > 0) it.piezasIds.forEach((id, i) => { const k = n0 + i; p.piezas.push({ id, x: r2(8 + (k % 10) * 9.4), y: r2(clamp(92 - Math.floor(k / 10) * 9, 8, 92)), nombre: '', precio: '', vendida: false }); });
       else {
@@ -734,7 +872,8 @@ function aplicarCompra(prods, c, dir) {
 }
 const pidsDe = v => [...new Set(v.items.filter(i => !i.libre).map(i => i.pid))];
 const Ops = {
-  guardar: (p, put = [], del = [], movs = []) => { S.galCache.delete(p.id); return DB.commit([['productos', p], ...put.map(f => ['fotos', f]), ...movs], del.map(id => ['fotos', id])); },
+  guardar: async (p, put = [], del = [], movs = []) => { S.galCache.delete(p.id); await DB.commit([['productos', p], ...put.map(f => ['fotos', f]), ...movs], del.map(id => ['fotos', id]));
+    if (DB === FB && S.tienda.catalogo && !p.oculto) publicarMedia([p]).catch(console.error); },
   eliminar: async id => {
     const p = S.productos.get(id), fs = await galeria(id); S.galCache.delete(id);
     return DB.commit(p ? [mov(p, 'baja', -stockDe(p), { stock: 0, motivo: 'Producto eliminado' })] : [], [['productos', id], ...fs.map(f => ['fotos', f.id])]);
@@ -789,9 +928,10 @@ const Ops = {
     if (DB !== FB) throw new Error('El catálogo público necesita la base de datos en la nube');
     const actuales = await DB.todos('catalogo');
     if (!on) return DB.commit([['config', { ...S.tienda, catalogo: false, id: 'tienda' }]], actuales.map(c => ['catalogo', c.id]));
-    const ps = [...S.productos.values()];
-    return DB.commit([['config', { ...S.tienda, catalogo: true, id: 'tienda' }], ...ps.filter(x => !x.oculto).map(x => ['catalogo', pub(x)])],
-      [...ps.filter(x => x.oculto).map(x => ['catalogo', x.id]), ...actuales.filter(c => c.id !== '_tienda' && !S.productos.has(c.id)).map(c => ['catalogo', c.id])]);
+    const ps = [...S.productos.values()], vis = ps.filter(x => !x.oculto);
+    await DB.commit([['config', { ...S.tienda, catalogo: true, id: 'tienda' }], ...vis.map(x => ['catalogo', pub(x)])],
+      [...ps.filter(x => x.oculto).flatMap(x => [['catalogo', x.id], ['catalogo', MEDIA(x.id)]]), ...actuales.filter(c => c.id !== '_tienda' && !S.productos.has(c.pid || c.id)).map(c => ['catalogo', c.id])]);
+    toast('Subiendo fotos del catálogo… 📸'); await publicarMedia(vis);
   },
   eliminarProveedor: id => DB.commit([], [['proveedores', id]]),
   importar: d => { S.galCache.clear(); return DB.commit([...(d.productos || []).map(p => ['productos', p]), ...(d.ventas || []).map(v => ['ventas', v]),
@@ -1170,11 +1310,13 @@ function abrirCompraNueva(pid) {
         <label class="field">Precio de venta ${c.np.tipo === 'set' ? 'por pieza' : ''}<input data-np="precio" type="number" inputmode="decimal" min="0" step="any" value="${esc(c.np.precio)}"></label>
         <div class="row-btns sm"><button type="button" class="btn" data-act="npCancel">Cancelar</button><button type="button" class="btn pri" data-act="npAdd">Agregar a la compra</button></div></div>` : ''}
       <div id="cpLineas">${c.items.map((it, i) => {
-        const set = it.nuevo ? it.nuevo.tipo === 'set' : esSet(S.productos.get(it.pid) || {});
+        const p = S.productos.get(it.pid), set = it.nuevo ? it.nuevo.tipo === 'set' : esSet(p || {}), cop = set && it.copias, puede = set && !it.nuevo && p?.piezas.length;
         return `<div class="cl"><div><b>${esc(it.nombre)}</b> ${it.nuevo ? '<span class="tag">nuevo</span>' : ''} ${set ? '<span class="tag">🧩 piezas</span>' : ''}</div>
           <button type="button" class="x" data-act="cpQuitar" data-i="${i}" aria-label="Quitar">✕</button>
-          <div class="two"><label>${set ? 'Piezas' : 'Cantidad'}<input type="number" inputmode="numeric" min="1" step="1" data-cl="cant" data-i="${i}" value="${esc(it.cant)}"></label>
-            <label>Costo ${set ? 'por pieza' : 'c/u'} $<input type="number" inputmode="decimal" min="0" step="any" data-cl="costo" data-i="${i}" value="${esc(it.costo)}"></label></div>
+          ${puede ? `<div class="seg sm">${[[1, '🔁 Set repetido'], [0, '🆕 Piezas nuevas']].map(([v, t]) => `<button type="button" data-act="cpModo" data-i="${i}" data-v="${v}" class="${!!cop === !!v ? 'on' : ''}">${t}</button>`).join('')}</div>
+          <small class="meta">${cop ? `Suma +${num(it.cant) || 0} a cada una de las ${p.piezas.length} piezas que ya tienes marcadas` : 'Agrega marcas nuevas al set (luego acomódalas en la foto)'}</small>` : ''}
+          <div class="two"><label>${cop ? 'Sets' : set ? 'Piezas' : 'Cantidad'}<input type="number" inputmode="numeric" min="1" step="1" data-cl="cant" data-i="${i}" value="${esc(it.cant)}"></label>
+            <label>Costo ${cop ? 'del set' : set ? 'por pieza' : 'c/u'} $<input type="number" inputmode="decimal" min="0" step="any" data-cl="costo" data-i="${i}" value="${esc(it.costo)}"></label></div>
           <small id="cr${i}"></small></div>`; }).join('') || '<p class="empty">Agrega los productos que recibiste</p>'}</div>
       <label class="field">Envío y otros gastos $<input type="number" inputmode="decimal" min="0" step="any" data-cp="envio" value="${esc(c.envio)}" placeholder="0"></label>
       <p class="hint">💡 El envío se reparte entre los productos según su valor y se suma a su costo.</p>
@@ -1192,7 +1334,8 @@ function abrirCompraNueva(pid) {
       if (i.dataset.cp === 'prov' && (i.value === '__nuevo') !== !!$('[data-cp=provNuevo]', r)) drawSheet(); else cpTotales(r, c);
     });
     $$('[data-np]', r).forEach(i => i.oninput = () => c.np[i.dataset.np] = i.value);
-    $$('[data-cl]', r).forEach(i => i.oninput = () => { c.items[i.dataset.i][i.dataset.cl] = i.value; cpTotales(r, c); });
+    $$('[data-cl]', r).forEach(i => i.oninput = () => { const it = c.items[i.dataset.i]; it[i.dataset.cl] = i.value; cpTotales(r, c);
+      const m = i.closest('.cl').querySelector('.meta'); if (it.copias && m) m.textContent = m.textContent.replace(/\+\d*/, '+' + (num(it.cant) || 0)); });
     res(); cpTotales(r, c);
   } });
   if (pid) ACT.cpAdd({ dataset: { id: pid } });
@@ -1204,7 +1347,7 @@ function cpCalc(c) {
 }
 function cpTotales(r, c) {
   const k = cpCalc(c);
-  c.items.forEach((it, i) => { const el = $('#cr' + i, r); if (el) el.textContent = `Importe ${money(num(it.cant) * num(it.costo))} · costo real con envío ${money(k.real(it))} c/u`; });
+  c.items.forEach((it, i) => { const el = $('#cr' + i, r); if (el) el.textContent = `Importe ${money(num(it.cant) * num(it.costo))} · costo real con envío ${money(k.real(it))} ${it.copias ? 'por set' : 'c/u'}`; });
   $('#cpTot', r).innerHTML = `<div><span>Productos</span><span>${money(k.sub)}</span></div><div><span>Envío y gastos</span><span>${money(k.envio)}</span></div>
     <div class="big"><span>Total</span><span>${money(k.total)}</span></div>`;
 }
@@ -2522,7 +2665,8 @@ const ACT = {
     const c = ctx(), p = S.productos.get(a.dataset.id); if (!p) return;
     const ya = c.items.find(i => i.pid === p.id);
     if (ya) ya.cant = num(ya.cant) + 1;
-    else c.items.push({ pid: p.id, nombre: p.nombre, cant: 1, costo: r2(p.ultimaCompra?.costo ?? (esSet(p) ? costoPieza(p) : num(p.costo))) || '' });
+    else { const cop = esSet(p) && p.piezas.length > 0, cu = p.ultimaCompra?.costo ?? (esSet(p) ? costoPieza(p) : num(p.costo));
+      c.items.push({ pid: p.id, nombre: p.nombre, cant: 1, copias: cop, costo: r2(cop ? cu * nPz(p) : cu) || '' }); }
     c.q = ''; drawSheet();
   },
   cpQuitar: a => { ctx().items.splice(+a.dataset.i, 1); drawSheet(); },
@@ -2534,6 +2678,8 @@ const ACT = {
     c.items.push({ pid: uid(), nombre: np.nombre.trim(), cant: 1, costo: '', precio: num(np.precio), nuevo: { tipo: np.tipo, categoria: np.categoria.trim(), codigo: np.codigo.trim() } });
     c.np = null; drawSheet();
   },
+  cpModo: a => { const it = ctx().items[a.dataset.i], v = a.dataset.v === '1', n = nPz(S.productos.get(it.pid)); if (!!it.copias === v) return;
+    it.copias = v; it.costo = it.costo === '' ? '' : r2(v ? num(it.costo) * n : num(it.costo) / n); it.cant = v ? 1 : n; drawSheet(); },
   cpGuardar: async a => {
     const c = ctx(), k = cpCalc(c);
     if (!c.items.length) return toast('Agrega al menos un producto', 'warn');
@@ -2545,7 +2691,10 @@ const ACT = {
     const [y, m, d] = c.fecha.split('-').map(Number), ahora = new Date();
     const fecha = c.fecha === hoyISO() ? ahora.getTime() : new Date(y, m - 1, d, 12).getTime();
     const items = c.items.map(i => {
-      const p = S.productos.get(i.pid), set = i.nuevo ? i.nuevo.tipo === 'set' : esSet(p), cant = num(i.cant), costo = r2(num(i.costo));
+      const p = S.productos.get(i.pid), set = i.nuevo ? i.nuevo.tipo === 'set' : esSet(p);
+      if (set && i.copias && !i.nuevo) { const n = nPz(p), sets = num(i.cant);
+        return { pid: i.pid, nombre: i.nombre, cant: sets * n, copias: sets, costo: r2(num(i.costo) / n), costoReal: r2(k.real(i) / n), importe: r2(sets * num(i.costo)) }; }
+      const cant = num(i.cant), costo = r2(num(i.costo));
       return { pid: i.pid, nombre: i.nombre, cant, costo, costoReal: k.real(i), importe: r2(cant * costo), ...(i.nuevo ? { nuevo: i.nuevo, precio: i.precio } : {}),
         ...(set ? { piezasIds: Array.from({ length: cant }, () => uid()) } : {}) };
     });
@@ -2843,7 +2992,7 @@ addEventListener('offline', render);
 
 /* ---------- Catálogo público (index.html?catalogo) ---------- */
 const desdePub = d => ({ id: d.id, nombre: d.nombre, categoria: d.categoria, codigo: d.codigo, tipo: d.tipo, foto: d.foto, ar: d.ar, ms: d.ms, precioVenta: d.precio, precioSugerido: 0,
-  stock: d.disponible, piezas: (d.piezas || []).map((z, i) => ({ id: 'z' + i, x: z.x, y: z.y, vendida: !!z.v, ...(z.c > 1 ? { cant: z.c } : {}), nombre: z.n || '', precio: z.p ?? '' })) });
+  stock: d.disponible, piezas: (d.piezas || []).map((z, i) => ({ id: 'z' + i, x: z.x, y: z.y, vendida: !!z.v, ...(z.c > 1 ? { cant: z.c } : {}), f: z.f, nombre: z.n || '', precio: z.p ?? '' })) });
 async function bootCatalogo() {
   document.body.classList.add('catalogo'); S.view = 'catalogo';
   $('#main').innerHTML = `<div class="loader">${mascota('lg')}Cargando catálogo…</div>`;
@@ -2853,58 +3002,112 @@ async function bootCatalogo() {
     const base = `https://www.gstatic.com/firebasejs/${FIREBASE_SDK}/`;
     const [A, F] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-firestore.js')]);
     const db = F.getFirestore(A.initializeApp(conf, 'catalogo'));
-    F.onSnapshot(F.collection(db, 'catalogo'), s => {
-      const docs = s.docs.map(d => d.data());
-      S.catTienda = docs.find(d => d.id === '_tienda') || {};
-      if (NOMBRES_AV[S.catTienda.avatar]) cfg.avatar = S.catTienda.avatar;
-      S.productos = new Map(docs.filter(d => d.id !== '_tienda').map(d => [d.id, desdePub(d)]));
-      renderCatalogo(); if (S.sheet?.live) drawSheet();
-    }, e => falla(e.code === 'permission-denied' ? 'El catálogo aún no está publicado.' : e.message));
+    Object.assign(S, { catF: F, catDb: db, catMedia: new Map() });
+    const err = e => falla(e.code === 'permission-denied' ? 'El catálogo aún no está publicado.' : e.message);
+    let listo = 0; const pinta = () => { if (listo === 3) renderCatalogo(); };
+    F.onSnapshot(F.doc(db, 'catalogo', '_tienda'), s => { S.catTienda = s.data() || {}; if (NOMBRES_AV[S.catTienda.avatar]) cfg.avatar = S.catTienda.avatar; listo |= 1; pinta(); }, err);
+    F.onSnapshot(F.query(F.collection(db, 'catalogo'), F.where('tipo', 'in', ['set', 'individual'])), s => {
+      S.productos = new Map(s.docs.map(d => desdePub(d.data())).map(p => [p.id, p])); listo |= 2; pinta();
+    }, err);
   } catch (e) { falla('Revisa tu conexión a internet.'); }
 }
+/* Catálogo web: mismo lenguaje visual que el PDF ("Candy Ledger"), en una sola página continua */
+const MEDIA = id => id + '__f';
+const CW_ESC = ['linear-gradient(135deg,#ff4fa3,#7c3aed)', 'linear-gradient(135deg,#22d3ee,#7c3aed)', 'linear-gradient(135deg,#ff9f43,#ff4fa3)', 'linear-gradient(135deg,#7c3aed,#22d3ee)'];
+function rafagaSVG(txt, sub, idx, R = 100) {
+  const pts = (r, s) => Array.from({ length: 26 }, (_, i) => { const a = i * Math.PI / 13 - Math.PI / 2, k = i % 2 ? .66 + ((s * 7 + i * 13) % 10) / 100 : .92 + ((s * 3 + i * 11) % 9) / 100; return `${r2(Math.cos(a) * r * k)},${r2(Math.sin(a) * r * k * .86)}`; }).join(' ');
+  const lin = Array.from({ length: 10 }, (_, i) => { const a = i * Math.PI / 5 + .3, r0 = R * 1.02, r1 = R * (1.16 + (i % 3) * .07); return `<line x1="${r2(Math.cos(a) * r0)}" y1="${r2(Math.sin(a) * r0 * .86)}" x2="${r2(Math.cos(a) * r1)}" y2="${r2(Math.sin(a) * r1 * .86)}"/>`; }).join('');
+  const z = Math.min(R * .44, R * 1.24 / (txt.length * .62)), sz = R * .22, ty = sub ? -8 : 2, gira = idx % 2 ? 8 : -8;
+  return `<svg class="cw-burst" viewBox="-130 -130 260 260" aria-label="${esc(txt)}${sub ? ' ' + sub : ''}"><g stroke="#2a1650" stroke-width="4" stroke-linecap="round">${lin}</g>
+    <polygon points="${pts(R, idx)}" fill="#2a1650" transform="translate(7 7)"/><polygon points="${pts(R, idx)}" fill="${idx % 4 === 1 ? '#ffe14f' : '#ffd23f'}" stroke="#2a1650" stroke-width="5" stroke-linejoin="round"/>
+    <polygon points="${pts(R * .62, idx + 5)}" fill="rgba(255,255,255,.55)"/>
+    <g transform="translate(0 ${ty}) rotate(${gira})" font-family="'Mochiy Pop One','M PLUS Rounded 1c',sans-serif" text-anchor="middle" dominant-baseline="central" stroke-linejoin="round">
+      <text x="4" y="5" font-size="${r2(z)}" fill="#2a1650">${esc(txt)}</text><text font-size="${r2(z)}" fill="#ff4fa3" stroke="#2a1650" stroke-width="9" paint-order="stroke">${esc(txt)}</text>
+      <text x="-1" y="-2" font-size="${r2(z)}" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="1.6">${esc(txt)}</text>
+      ${sub ? `<text y="${r2(z * .62 + sz * .4)}" font-size="${r2(sz)}" fill="#fff" stroke="#2a1650" stroke-width="6" paint-order="stroke">${sub}</text>` : ''}</g></svg>`;
+}
+const cwChat = '<svg class="cw-chat" viewBox="-12 -12 24 26" aria-hidden="true"><circle r="11" fill="currentColor"/><path d="M-6 6.6-10.5 11.5-1 9.4z" fill="currentColor"/><g fill="#fff"><circle cx="-4.2" r="1.5"/><circle r="1.5"/><circle cx="4.2" r="1.5"/></g></svg>';
+const cwBtn = (t, txt, label = 'Lo quiero', cls = '') => t.whatsapp ? `<a class="cw-btn ${cls}" target="_blank" rel="noopener" href="${waLink(t.whatsapp, msjWA(t, txt))}">${cwChat}<span>${label}</span></a>` : '';
+const cwPills = a => `<div class="cw-pills">${a.map(([txt, c]) => `<span class="cw-pill ${c || ''}">${esc(txt)}</span>`).join('')}</div>`;
+function cwFoto(p, cls = '') {
+  if (!p.foto) return `<div class="cw-foto vacia ${cls}"><b>${esc((p.nombre.trim()[0] || '?').toUpperCase())}</b><small>foto próximamente</small></div>`;
+  return `<div class="cw-foto ${cls}">${fotoHTML(p).replace('<img src=', `<img data-mf="${p.id}" src=`)}</div>`;
+}
+function cwInd(p, idx, t) {
+  const st = stockDe(p), der = idx % 2;
+  return `<article class="cw-ind${der ? ' der' : ''}" data-cwm="${p.id}">
+    <div class="cw-tile" data-act="cwVer" data-id="${p.id}"><div class="cw-esc" style="background:${CW_ESC[idx % 4]}"></div>${cwFoto(p)}${rafagaSVG(precioCorto(precioDe(p)), '', idx)}</div>
+    <div class="cw-txt"><small class="cw-cat">${esc((p.categoria || 'Novedad').toUpperCase())}</small><h3>${esc(p.nombre)}</h3><div class="cw-linea"></div>
+      ${cwPills([st === 1 ? ['¡Última pieza!', 'rosa'] : [`${st} disponibles`], ...(p.codigo ? [[`#${p.codigo}`, 'blanca']] : [])])}
+      ${cwBtn(t, `${p.nombre}${p.codigo ? ' (' + p.codigo + ')' : ''} · ${precioCorto(precioDe(p))}`)}</div></article>`;
+}
+function cwPieza(p, z, i, t) {
+  const vend = z.vendida && !z.ap, ap = z.vendida && z.ap, H = 1000, W = 1000 * (p.ar || 1), m = Math.min(W, H), s = clamp(W * (p.ms || 9) / 100 * 2.8, m * .16, m * .6);
+  const sx = clamp(z.x / 100 * W - s / 2, 0, W - s), sy = clamp(z.y / 100 * H - s / 2, 0, H - s), pc = (a, b) => b > 0 ? r2(a / b * 100) : 50;
+  const crop = p.foto ? `background-size:${r2(W / s * 100)}% ${r2(H / s * 100)}%;background-position:${pc(sx, W - s)}% ${pc(sy, H - s)}%` : '';
+  const tag = !z.vendida && t.whatsapp ? 'a' : 'div', href = tag === 'a' ? ` target="_blank" rel="noopener" href="${waLink(t.whatsapp, msjWA(t, `la pieza #${i + 1}${z.nombre ? ' (' + z.nombre + ')' : ''} del set ${p.nombre} · ${precioCorto(precioPieza(p, z))}`))}"` : '';
+  return `<${tag} class="cw-pz${vend ? ' vend' : ap ? ' ap' : ''}"${href}><span class="cw-pzimg${p.foto ? '' : ' vacia'}" style="${crop}">${p.foto ? '' : '#' + (i + 1)}${z.f ? `<img data-mpz="${i}" alt="" hidden>` : ''}
+      ${z.vendida ? `<em class="cw-sello"><i>${ap ? 'APARTADA' : 'VENDIDA'}</i></em>` : ''}</span><span class="cw-num">${i + 1}</span>${dispPz(z) > 1 ? `<span class="cw-xn">×${dispPz(z)}</span>` : ''}
+    <b>${esc(z.nombre || `Pieza ${i + 1}`)}</b><span class="cw-pp">${vend ? 'Vendida' : ap ? 'Apartada' : precioCorto(precioPieza(p, z))}</span>${tag === 'a' ? cwChat : ''}</${tag}>`;
+}
+function cwSet(p, idx, t) {
+  const st = stockDe(p);
+  return `<article class="cw-set" data-cwm="${p.id}" style="--simg:url('${p.foto}')">
+    <div class="cw-shead"><div class="cw-txt"><small class="cw-cat">${esc((p.categoria || 'Novedad').toUpperCase())} · SET</small><h3>${esc(p.nombre)}</h3>
+      ${cwPills([[`Set de ${p.piezas.length} piezas`], st === 1 ? ['¡Última pieza!', 'rosa'] : [`${st} disponibles`], ...(p.codigo ? [[`#${p.codigo}`, 'blanca']] : [])])}
+      ${cwBtn(t, `el set ${p.nombre}${p.codigo ? ' (' + p.codigo + ')' : ''} · ${precioCorto(precioPieza(p, {}))} c/u`)}</div>${rafagaSVG(precioCorto(precioPieza(p, {})), 'c/u', idx)}</div>
+    <div class="cw-sfoto" data-act="cwVer" data-id="${p.id}"><div class="cw-esc" style="background:${CW_ESC[idx % 4]}"></div>${cwFoto(p, 'grupal')}</div>
+    <h4 class="cw-titular"><span>PIEZAS DEL SET</span><small>${st} de ${totPz(p)} disponibles</small></h4>
+    <div class="cw-pzs">${p.piezas.map((z, i) => cwPieza(p, z, i, t)).join('')}</div></article>`;
+}
 function renderCatalogo() {
-  const t = S.catTienda, nom = t.nombre || 'Catálogo';
-  $('#storeName').textContent = nom; document.title = `${nom} · Catálogo`; $('#hdrMascot').innerHTML = mascota();
-  if (!$('#catGrid')) $('#main').innerHTML = `<div class="dash" style="grid-template-columns:1fr">
-    <section class="card hero">${mascota('lg')}<div><h2>${esc(nom)}</h2>${t.eslogan ? `<p>${esc(t.eslogan)}</p>` : ''}<p class="meta">Toca un producto para verlo y pedirlo por WhatsApp 💬</p></div></section>
-    <div><div class="search"><span>🔍</span><input id="q" type="search" placeholder="Buscar" autocomplete="off"></div><div class="chips" id="catChips" style="margin-top:8px"></div></div>
-    <div id="catGrid" class="grid"></div>
-    <section class="card" style="text-align:center">${t.mensaje ? `<p><b>${esc(t.mensaje)}</b></p>` : ''}${t.direccion ? `<p class="meta">📍 ${esc(t.direccion)}</p>` : ''}${t.redes ? `<p class="meta">${esc(t.redes)}</p>` : ''}
-      ${t.whatsapp ? `<a class="btn ok" target="_blank" rel="noopener" href="${waLink(t.whatsapp, `Hola ${nom} 👋`)}">💬 Escríbenos</a>` : ''}</section></div>`;
+  const t = S.catTienda || {}, nom = t.nombre || 'Catálogo', n = [...S.productos.values()].filter(p => stockDe(p) > 0).length;
+  document.title = `${nom} · Catálogo`;
+  $('#main').innerHTML = `<div class="cw">
+    <header class="cw-hero"><div class="cw-in">
+      <div class="cw-logo"><img src="${t.logo || LOGO_DEF}" alt="${esc(nom)}"></div>
+      <div class="cw-tit"><h1>CATÁLOGO</h1><p class="cw-nom">${esc(nom)}</p>${t.eslogan ? `<p class="cw-esl">${esc(t.eslogan)}</p>` : ''}
+        <span class="cw-pill amarilla">${capital(new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' }))} · ${n} producto${n === 1 ? '' : 's'}</span></div>
+      <div class="cw-mid"><img src="${IMG.m03}" alt=""><span class="cw-globo">${t.whatsapp ? '¡Elige tu favorito y pídelo por WhatsApp!' : '¡Elige tu favorito!'}</span></div></div></header>
+    <div class="cw-in">
+      <section class="cw-como">${[['1', 'Elige tu', 'favorito'], ['2', 'Toca', '«Lo quiero»'], ['3', 'Confirma por', 'WhatsApp']].map(([k, a, b]) => `<div><span>${k}</span><p>${a}<b>${b}</b></p></div>`).join('')}</section>
+      <div class="cw-bar"><div class="search"><span>🔍</span><input id="q" type="search" placeholder="Buscar en el catálogo" value="${esc(S.q)}" autocomplete="off"></div><div class="chips" id="catChips"></div></div>
+      <div id="cwLista"></div>
+      <section class="cw-fin"><div class="cw-logo"><img src="${t.logo || LOGO_DEF}" alt=""></div><div><h2>¡Gracias por visitarnos!</h2>
+        ${[t.mensaje, t.direccion && '📍 ' + t.direccion, t.redes].filter(Boolean).map(m => `<p>${esc(m)}</p>`).join('')}
+        ${t.whatsapp ? `<a class="cw-btn grande" target="_blank" rel="noopener" href="${waLink(t.whatsapp, `Hola ${nom} 👋`)}">${cwChat}<span>Escríbenos por WhatsApp</span></a>` : ''}</div>
+        <img class="cw-adios" src="${IMG.m11}" alt=""></section></div>
+    <footer class="cw-pie"><div class="cw-in">${t.whatsapp ? `<a target="_blank" rel="noopener" href="${waLink(t.whatsapp, `Hola ${nom} 👋, vi su catálogo y me interesa…`)}">${cwChat}<span><small>PEDIDOS POR WHATSAPP</small><b>${esc(t.whatsapp)}</b></span></a>` : `<b>${esc(nom)}</b>`}
+      ${t.redes ? `<span class="cw-redes">${esc(t.redes)}</span>` : ''}<img src="${IMG.m09}" alt=""></div></footer></div>`;
   $('#q').oninput = e => { S.q = e.target.value; renderCatGrid(); };
   renderCatGrid();
 }
+let cwObs = null;
 function renderCatGrid() {
-  const ps = [...S.productos.values()].filter(p => stockDe(p) > 0), cats = [...new Set(ps.map(p => p.categoria).filter(Boolean))].sort();
+  const t = S.catTienda || {}, ps = [...S.productos.values()].filter(p => stockDe(p) > 0), cats = [...new Set(ps.map(p => p.categoria).filter(Boolean))].sort();
   $('#catChips').innerHTML = chip('cCat', '', '🌈 Todo', !S.cat) + cats.map(c => chip('cCat', c, esc(c), S.cat === c)).join('');
-  const q = S.q.trim().toLowerCase();
-  $('#catGrid').innerHTML = ps.filter(p => (!S.cat || p.categoria === S.cat) && (!q || [p.nombre, p.codigo, p.categoria].some(x => String(x || '').toLowerCase().includes(q))))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre)).map(p => cardHTML(p, 'cVer', esSet(p) ? `${money(precioPieza(p, {}))} c/u<small>${stockDe(p)} de ${totPz(p)} disponibles</small>` : money(precioDe(p))
-      + (stockDe(p) <= 2 ? `<small>¡${stockDe(p) === 1 ? 'Última pieza' : 'Últimas piezas'}!</small>` : ''))).join('')
-    || `<div class="empty" style="grid-column:1/-1">${mascota('lg')}<p>${ps.length ? 'Sin coincidencias 🔎' : 'Pronto tendremos productos aquí ✨'}</p></div>`;
+  const q = S.q.trim().toLowerCase(), vis = ps.filter(p => (!S.cat || p.categoria === S.cat) && (!q || [p.nombre, p.codigo, p.categoria].some(x => String(x || '').toLowerCase().includes(q))))
+    .sort((a, b) => (a.categoria || '').localeCompare(b.categoria || '') || a.nombre.localeCompare(b.nombre));
+  const ind = vis.filter(p => !esSet(p)), sets = vis.filter(esSet);
+  $('#cwLista').innerHTML = (ind.length ? `<h2 class="cw-titular"><span>PIEZAS INDIVIDUALES</span><small>${ind.length}</small></h2>${ind.map((p, i) => cwInd(p, i, t)).join('<div class="cw-sep"></div>')}` : '')
+    + (sets.length ? `<h2 class="cw-titular"><span>SETS Y COLECCIONES</span><small>${sets.length}</small></h2>${sets.map((p, i) => cwSet(p, i, t)).join('')}` : '')
+    || `<div class="empty">${mascota('lg')}<p>${ps.length ? 'Sin coincidencias 🔎' : 'Pronto tendremos productos aquí ✨'}</p></div>`;
+  cwObs ??= 'IntersectionObserver' in window ? new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { cwObs.unobserve(e.target); cwMedia(e.target.dataset.cwm); } }), { rootMargin: '900px 0px' }) : null;
+  $$('[data-cwm]').forEach(el => cwObs ? cwObs.observe(el) : cwMedia(el.dataset.cwm));
 }
-function abrirCat(id) {
-  openSheet({ live: true, ctx: { id, sel: [] }, html() {
-    const c = this.ctx, p = S.productos.get(c.id), t = S.catTienda;
-    if (!p || stockDe(p) <= 0) return head('Producto') + '<p class="empty">Este producto ya no está disponible 😿</p>';
-    const set = esSet(p); c.sel = c.sel.filter(id => p.piezas.some(z => z.id === id && !z.vendida));
-    const nums = p.piezas.map((z, i) => c.sel.includes(z.id) ? i + 1 : 0).filter(Boolean);
-    const precio = set ? (nums.length ? sumBy(p.piezas.filter(z => c.sel.includes(z.id)), z => precioPieza(p, z)) : precioPieza(p, {})) : precioDe(p);
-    const msg = `Hola ${t.nombre || ''} 👋, me interesa: ${p.nombre}${p.codigo ? ' (' + p.codigo + ')' : ''}${nums.length ? ' — piezas #' + nums.join(', #') : ''} · ${money(precio)}${set && !nums.length ? ' c/u' : ''}. ¿Sigue disponible?`;
-    return `${head(esc(p.nombre))}<div class="det"><div class="det-photo">${fotoHTML(p, { cls: 'big' + (set ? ' inter' : ''), sel: c.sel })}
-        ${set && !p.foto ? `<div class="pz-list">${p.piezas.map((z, i) => z.vendida ? `<span class="pzchip off">#${i + 1}</span>` : `<button type="button" class="pzchip${c.sel.includes(z.id) ? ' on' : ''}" data-act="cSel" data-id="${z.id}">#${i + 1}${z.nombre ? ' ' + esc(z.nombre) : ''}${xN(z)}</button>`).join('')}</div>` : ''}
-        ${set ? `<p class="hint">👆 Toca las piezas que te gustan · las tachadas ya se vendieron</p>` : ''}</div>
-      <div>${p.categoria ? `<span class="tag">${esc(p.categoria)}</span>` : ''}
-        <div class="prices" style="grid-template-columns:1fr 1fr"><div class="hl"><small>${set ? (nums.length ? `${nums.length} pieza(s)` : 'Precio por pieza') : 'Precio'}</small><b>${money(precio)}</b></div>
-          <div><small>Disponibles</small><b>${set ? `${stockDe(p)} de ${totPz(p)}` : stockDe(p)}</b></div></div>
-        ${t.whatsapp ? `<a class="btn ok cobrar" target="_blank" rel="noopener" href="${waLink(t.whatsapp, msg)}">💬 Lo quiero</a>` : '<p class="hint">Contáctanos por nuestras redes para pedirlo ✨</p>'}
-      </div></div>`;
-  }, mount(r) {
-    const ph = $('.box.inter .ph', r), c = this.ctx;
-    if (ph) ph.onclick = e => { const b = e.target.closest('.pz'); if (!b || b.classList.contains('off')) return; const id = b.dataset.z; c.sel = c.sel.includes(id) ? c.sel.filter(x => x !== id) : [...c.sel, id]; drawSheet(); };
-  } });
+function cwMedia(pid) {
+  if (!S.catMedia.has(pid)) S.catMedia.set(pid, S.catF.getDoc(S.catF.doc(S.catDb, 'catalogo', MEDIA(pid))).then(s => s.data() || {}, () => ({})));
+  return S.catMedia.get(pid).then(d => {
+    const el = $(`[data-cwm="${pid}"]`); if (!el) return d;
+    if (d.f) { $$('img[data-mf]', el).forEach(i => i.src = d.f); el.style.setProperty('--simg', `url('${d.f}')`); }
+    $$('img[data-mpz]', el).forEach(i => { const u = d.pz?.[i.dataset.mpz]; if (u) { i.src = u; i.hidden = false; } });
+    return d;
+  });
 }
-Object.assign(ACT, { cSel: a => { const c = ctx(), id = a.dataset.id; c.sel = c.sel.includes(id) ? c.sel.filter(x => x !== id) : [...c.sel, id]; drawSheet(); }, cVer: a => abrirCat(a.dataset.id), cCat: a => { S.cat = a.dataset.v; renderCatGrid(); } });
+Object.assign(ACT, {
+  cCat: a => { S.cat = a.dataset.v; renderCatGrid(); },
+  cwVer: async a => { const p = S.productos.get(a.dataset.id); if (!p?.foto) return; const d = await cwMedia(p.id); abrirVisor([d.f || p.foto, ...Object.values(d.pz || {})]); }
+});
 
 /* ---------- Arranque ---------- */
 (async function boot() {

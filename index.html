@@ -232,7 +232,7 @@ a.btn{color:var(--ink)}
 .gb.star{left:3px}.gb.del{right:3px}
 #visor{position:fixed;inset:0;z-index:66;background:#1a0b33f2;display:grid;place-items:center;padding:56px 12px}
 #visor[hidden]{display:none}
-#visor img{max-width:100%;max-height:100%;border:3px solid #fff;border-radius:14px}
+#visor img{max-width:min(100%,calc(100vw - 24px));max-height:calc(100vh - 112px);max-height:calc(100dvh - 112px - env(safe-area-inset-top) - var(--safe-b));width:auto;height:auto;object-fit:contain;border:3px solid #fff;border-radius:14px}
 #visor .x{position:absolute;top:max(12px,env(safe-area-inset-top));right:12px}
 #visor .vn{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:2.5px solid var(--ink);background:#fff;font-size:1.4rem;font-weight:800;cursor:pointer}
 #visor .vn.prev{left:10px}#visor .vn.next{right:10px}

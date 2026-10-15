@@ -121,6 +121,7 @@ a.btn{color:var(--ink)}
   background:var(--pink);color:#fff;border:2px solid #fff;box-shadow:0 0 0 2px var(--ink);display:grid;place-items:center;
   font:800 calc(var(--ms,9) * .48cqw)/1 var(--f1);pointer-events:none;transition:transform .12s}
 .pz.off{background:rgba(30,10,55,.55);color:rgba(255,255,255,.55)}
+.pz[data-n]::after{content:attr(data-n);position:absolute;right:-.9em;top:-.7em;padding:0 .35em;border-radius:99px;background:var(--yellow);color:var(--ink);border:1.5px solid var(--ink);font-size:max(9px,calc(var(--ms,9) * .3cqw));line-height:1.35;font-weight:800;white-space:nowrap;pointer-events:none}
 .pz.ap{background:var(--yellow);color:var(--ink);font-size:calc(var(--ms,9) * .4cqw)}
 .pz.off::before,.pz.off::after{content:'';position:absolute;left:4%;right:4%;top:50%;height:17%;background:var(--red);border-radius:9px;transform:translateY(-50%) rotate(45deg);box-shadow:0 0 0 1px #fff}
 .pz.off::after{transform:translateY(-50%) rotate(-45deg)}
@@ -242,6 +243,7 @@ a.btn{color:var(--ink)}
 .check{display:flex;align-items:center;gap:8px;color:var(--ink);font-size:.9rem;margin:4px 0 6px}
 .check input{width:22px;height:22px;margin:0;accent-color:var(--pink)}
 .gadd{display:grid;place-items:center;font-size:2rem;font-weight:800;color:var(--purple);border-style:dashed;background:var(--lilac)}
+.pz-cant{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px;margin:6px 0}.pz-cant .step input{width:56px;text-align:center;border:0;background:none;font-weight:800;font-size:1.05rem;padding:0}
 .pz-foto{margin:8px 0}
 .logo-ed{display:flex;gap:14px;align-items:center;margin:10px 0}
 .logo-prev{width:96px;height:120px;flex:none;display:grid;place-items:center;border:2.5px solid var(--ink);border-radius:16px;background:#fff;padding:6px}
@@ -447,7 +449,14 @@ const saveCart = () => { localStorage.setItem(K('ks_cart'), JSON.stringify(S.car
 
 /* ---------- Reglas de producto ---------- */
 const esSet = p => p.tipo === 'set';
-const stockDe = p => esSet(p) ? (p.piezas || []).filter(z => !z.vendida).length : num(p.stock);
+const dispPz = z => z.vendida ? 0 : Math.max(1, Math.round(num(z.cant)) || 1);
+const setCant = (z, n) => { n = Math.max(0, Math.round(num(n))); z.vendida = n === 0; if (n > 1) z.cant = n; else delete z.cant; };
+const totPz = p => sumBy(p.piezas || [], z => Math.max(1, dispPz(z)));
+const xN = z => dispPz(z) > 1 ? ` ×${dispPz(z)}` : '';
+const cuentaEn = (a, id) => a.filter(x => x === id).length;
+const multiPz = p => (p.piezas || []).flatMap(z => Array(dispPz(z)).fill(z.id));
+const pzTxt = a => [...new Set(a)].map(n => '#' + n + (cuentaEn(a, n) > 1 ? ' ×' + cuentaEn(a, n) : '')).join(', ');
+const stockDe = p => esSet(p) ? sumBy(p.piezas || [], dispPz) : num(p.stock);
 const precioDe = p => num(p.precioVenta) || num(p.precioSugerido);
 const nPz = p => Math.max(1, (p.piezas || []).length);
 const precioPieza = (p, z) => z.precio !== '' && z.precio != null ? num(z.precio) : r2(precioDe(p) / nPz(p));
@@ -464,8 +473,8 @@ const metodoDe = ps => { const ms = [...new Set(ps.filter(p => p.monto > 0).map(
 const comisionDe = (total, pagos, canal) => r2(sumBy(pagos, p => p.metodo === 'Tarjeta' ? p.monto * num(S.tienda.comTarjeta) / 100 : 0) + total * num(S.tienda.comCanal?.[canal]) / 100);
 const esAp = v => 'saldo' in v && 'vence' in v;
 const apVencido = a => a.estado === 'activo' && a.vence < Date.now();
-function marcarAp(prods, items, apId) {
-  items.forEach(it => { const p = prods[it.pid]; if (!p || !it.piezas) return; p.piezas.forEach(z => { if (it.piezas.includes(z.id)) { if (apId) z.ap = apId; else delete z.ap; } }); });
+function marcarAp(prods, items, apId, on = true) {   // el candado solo queda en piezas cuya última existencia está apartada
+  items.forEach(it => { const p = prods[it.pid]; if (!p || !it.piezas) return; p.piezas.forEach(z => { if (it.piezas.includes(z.id)) { if (on) { if (z.vendida && !z.ap) z.ap = apId; } else if (z.ap === apId) delete z.ap; } }); });
 }
 
 /* Aplica (dir=-1) o revierte (dir=+1) una venta sobre los productos. Lógica compartida local / nube. */
@@ -478,8 +487,8 @@ function aplicarVenta(prods, venta, dir) {
       for (const id of it.piezas) {
         const z = (p.piezas || []).find(z => z.id === id);
         if (!z) { if (dir < 0) throw new Error(`Una pieza de "${p.nombre}" ya no existe`); continue; }
-        if (dir < 0 && z.vendida) throw new Error(`La pieza #${p.piezas.indexOf(z) + 1} de "${p.nombre}" ya no está disponible`);
-        z.vendida = dir < 0;
+        if (dir < 0 && !dispPz(z)) throw new Error(`La pieza #${p.piezas.indexOf(z) + 1} de "${p.nombre}" ya no está disponible`);
+        setCant(z, dispPz(z) + (dir < 0 ? -1 : 1));
       }
       p.stock = stockDe(p);
     } else {
@@ -641,7 +650,7 @@ const FB = {
 let DB = Local;
 /* ---------- Catálogo público: copia sin costos de cada producto en la colección "catalogo" ---------- */
 const pub = p => ({ id: p.id, nombre: p.nombre, categoria: p.categoria || '', codigo: p.codigo || '', tipo: p.tipo, foto: p.foto || '', ar: p.ar || 1, ms: p.ms || 9,
-  precio: precioDe(p), disponible: stockDe(p), piezas: esSet(p) ? p.piezas.map(z => ({ x: z.x, y: z.y, v: z.vendida ? 1 : 0, n: z.nombre || '', p: z.precio === '' || z.precio == null ? null : num(z.precio) })) : [],
+  precio: precioDe(p), disponible: stockDe(p), piezas: esSet(p) ? p.piezas.map(z => ({ x: z.x, y: z.y, v: z.vendida ? 1 : 0, c: dispPz(z), n: z.nombre || '', p: z.precio === '' || z.precio == null ? null : num(z.precio) })) : [],
   actualizado: Date.now() });
 const pubTienda = t => ({ id: '_tienda', nombre: t.nombre || tiendaNombre(), eslogan: t.eslogan || '', whatsapp: t.whatsapp || '', redes: t.redes || '',
   mensaje: t.mensaje || '', direccion: t.direccion || '', avatar: avatarActual(), actualizado: Date.now() });
@@ -742,8 +751,8 @@ const Ops = {
   }),
   marcar: (id, ids, vendida, motivo, nota) => DB.atomic([id], prods => {
     const p = prods[id]; if (!p) throw new Error('Producto no encontrado');
-    const nums = p.piezas.map((z, i) => ids.includes(z.id) && z.vendida !== vendida ? i + 1 : 0).filter(Boolean);
-    p.piezas.forEach(z => { if (ids.includes(z.id) && !z.ap) z.vendida = vendida; });
+    const nums = p.piezas.map((z, i) => ids.includes(z.id) && !z.ap && (!vendida || dispPz(z)) ? i + 1 : 0).filter(Boolean);
+    p.piezas.forEach((z, i) => { if (nums.includes(i + 1)) setCant(z, dispPz(z) + (vendida ? -1 : 1)); });
     p.stock = stockDe(p); p.actualizado = Date.now();
     return [['productos', p], mov(p, 'ajuste', vendida ? -nums.length : nums.length, { motivo, nota: nota || undefined, piezas: nums })];
   }),
@@ -756,10 +765,10 @@ const Ops = {
     return [...puts, ['apartados', ap], ...extra, ...ap.items.filter(it => !it.libre && prods[it.pid]).map(it => mov(prods[it.pid], 'apartado', -it.cant, { ref: ap.id, piezas: it.piezasNum || undefined, motivo: 'Apartado: ' + ap.cliente }))];
   }),
   abonar: (ap, pago) => { const pagos = [...ap.pagos, pago], pagado = r2(sumBy(pagos, x => x.monto)); return DB.commit([['apartados', { ...ap, pagos, pagado, saldo: r2(ap.total - pagado) }]]); },
-  liquidar: (ap, venta) => DB.atomic(pidsDe(ap), prods => { marcarAp(prods, ap.items, null);
+  liquidar: (ap, venta) => DB.atomic(pidsDe(ap), prods => { marcarAp(prods, ap.items, ap.id, false);
     return [...Object.values(prods).map(x => ['productos', x]), ['ventas', venta], ['apartados', { ...ap, estado: 'liquidado', ventaId: venta.id, liquidado: Date.now() }]]; }),
   cancelarApartado: (ap, reembolso) => DB.atomic(pidsDe(ap), prods => {
-    marcarAp(prods, ap.items, null); const puts = aplicarVenta(prods, ap, 1);
+    marcarAp(prods, ap.items, ap.id, false); const puts = aplicarVenta(prods, ap, 1);
     const pagos = reembolso?.monto > 0 ? [...ap.pagos, { fecha: Date.now(), metodo: reembolso.metodo, monto: -reembolso.monto }] : ap.pagos;
     return [...puts, ['apartados', { ...ap, pagos, pagado: r2(sumBy(pagos, x => x.monto)), estado: 'cancelado', canceladoEn: Date.now() }],
       ...ap.items.filter(it => !it.libre && prods[it.pid]).map(it => mov(prods[it.pid], 'cancel-apartado', it.cant, { ref: ap.id, piezas: it.piezasNum || undefined, motivo: 'Apartado cancelado' }))];
@@ -771,7 +780,7 @@ const Ops = {
   conteo: (difs, id) => DB.atomic(difs.map(d => d.pid), prods => difs.flatMap(d => {
     const p = prods[d.pid]; if (!p) return [];
     const s0 = stockDe(p), nums = [];
-    if (esSet(p)) p.piezas.forEach((z, i) => { if (z.ap) return; const v = !d.presentes.includes(z.id); if (!!z.vendida !== v) { z.vendida = v; nums.push(i + 1); } });
+    if (esSet(p)) p.piezas.forEach((z, i) => { if (z.ap) return; const n = cuentaEn(d.presentes, z.id); if (n !== dispPz(z)) { setCant(z, n); nums.push(i + 1); } });
     else p.stock = d.contado;
     p.stock = stockDe(p); p.actualizado = Date.now();
     return stockDe(p) !== s0 || nums.length ? [['productos', p], mov(p, 'ajuste', stockDe(p) - s0, { motivo: 'Conteo físico', ref: id, piezas: nums.length ? nums : undefined })] : [];
@@ -856,7 +865,7 @@ function recortar(file) {
 function fotoHTML(p, { cls = '', sel = [] } = {}) {
   if (!p.foto) return `<div class="box ${cls}"><div class="nofoto">📦</div></div>`;
   const marks = esSet(p) ? (p.piezas || []).map((z, i) =>
-    `<button type="button" class="pz${z.vendida ? (z.ap ? ' ap' : ' off') : ''}${sel.includes(z.id) ? ' sel' : ''}" data-z="${z.id}" style="left:${z.x}%;top:${z.y}%" aria-label="Pieza ${i + 1}">${z.ap ? '🔒' : i + 1}</button>`).join('') : '';
+    `<button type="button" class="pz${z.vendida ? (z.ap ? ' ap' : ' off') : ''}${sel.includes(z.id) ? ' sel' : ''}" data-z="${z.id}"${dispPz(z) > 1 ? ` data-n="×${dispPz(z)}"` : ''} style="left:${z.x}%;top:${z.y}%" aria-label="Pieza ${i + 1}">${z.ap ? '🔒' : i + 1}</button>`).join('') : '';
   return `<div class="box ${cls}"><div class="ph" style="--ar:${p.ar || 1};--ms:${p.ms || 9}"><img src="${p.foto}" alt="${esc(p.nombre)}">${marks}</div></div>`;
 }
 /* Genera una imagen con las marcas "quemadas" + franja con nombre y precio, para WhatsApp/redes. */
@@ -884,7 +893,7 @@ async function imagenConMarcas(p) {
   g.fillStyle = '#fff'; g.textBaseline = 'middle'; g.textAlign = 'left'; g.font = `800 ${band * .32}px sans-serif`;
   g.fillText(p.nombre.slice(0, 40), band * .25, H + band * .36);
   g.font = `700 ${band * .24}px sans-serif`;
-  g.fillText(esSet(p) ? `${stockDe(p)} de ${p.piezas.length} disponibles · ${money(precioPieza(p, {}))} c/u` : money(precioDe(p)), band * .25, H + band * .72);
+  g.fillText(esSet(p) ? `${stockDe(p)} de ${totPz(p)} disponibles · ${money(precioPieza(p, {}))} c/u` : money(precioDe(p)), band * .25, H + band * .72);
   return new Promise(res => c.toBlob(res, 'image/jpeg', .9));
 }
 function descargar(blob, nombre) {
@@ -1070,7 +1079,7 @@ function vInicio() {
   const bajos = ps.filter(p => estado(p) !== 'ok').sort((a, b) => stockDe(a) - stockDe(b));
   const unidades = sumBy(ps, stockDe);
   const valCosto = sumBy(ps, p => esSet(p) ? costoPieza(p) * stockDe(p) : num(p.costo) * stockDe(p));
-  const valVenta = sumBy(ps, p => esSet(p) ? sumBy(p.piezas.filter(z => !z.vendida), z => precioPieza(p, z)) : precioDe(p) * stockDe(p));
+  const valVenta = sumBy(ps, p => esSet(p) ? sumBy(p.piezas, z => precioPieza(p, z) * dispPz(z)) : precioDe(p) * stockDe(p));
   const ventaMes = sumBy(vMes, v => v.total), gananciaMes = sumBy(vMes, v => v.ganancia);
   const dias = [6, 5, 4, 3, 2, 1, 0].map(i => dia(Date.now(), i));
   const tot = dias.map((t, i) => sumBy(vs.filter(v => v.fecha >= t && v.fecha < (dias[i + 1] ?? Infinity)), v => v.total));
@@ -1241,7 +1250,7 @@ const pasaFiltro = (m, f) => !f || (f === 'cancel' ? m.tipo.startsWith('cancel')
 function movHTML(m, conNombre) {
   const [ic, lbl] = TIPOS_MOV[m.tipo] || ['•', m.tipo];
   return `<div class="mv"${conNombre && S.productos.has(m.pid) ? ` data-act="kardex" data-id="${m.pid}" style="cursor:pointer"` : ''}><span class="mv-ic">${ic}</span>
-    <div class="mv-t"><b>${conNombre ? esc(m.nombre) : lbl}</b><small>${conNombre ? lbl + ' · ' : ''}${fechaTxt(m.fecha)}${m.motivo ? ' · ' + esc(m.motivo) : ''}${m.nota ? ' · ' + esc(m.nota) : ''}${m.piezas?.length ? ' · pzas #' + m.piezas.join(', #') : ''}${m.costo != null && m.tipo.includes('compra') ? ' · costo ' + money(m.costo) : ''}${m.precio != null ? ' · ' + money(m.precio) : ''}${m.usuario ? ' · ' + esc(m.usuario.split('@')[0]) : ''}</small></div>
+    <div class="mv-t"><b>${conNombre ? esc(m.nombre) : lbl}</b><small>${conNombre ? lbl + ' · ' : ''}${fechaTxt(m.fecha)}${m.motivo ? ' · ' + esc(m.motivo) : ''}${m.nota ? ' · ' + esc(m.nota) : ''}${m.piezas?.length ? ' · pzas ' + pzTxt(m.piezas) : ''}${m.costo != null && m.tipo.includes('compra') ? ' · costo ' + money(m.costo) : ''}${m.precio != null ? ' · ' + money(m.precio) : ''}${m.usuario ? ' · ' + esc(m.usuario.split('@')[0]) : ''}</small></div>
     <div class="mv-n ${m.cant < 0 ? 'neg' : 'pos'}">${m.cant > 0 ? '+' : ''}${m.cant}<small>quedan ${m.stock}</small></div></div>`;
 }
 function vMovs() {
@@ -1272,7 +1281,7 @@ function filtrar(q) {
 }
 const cardHTML = (p, act = 'ver', precio = money(precioDe(p))) => `<article class="card prod" data-act="${act}" data-id="${p.id}">
       ${fotoHTML(p)}
-      <span class="badge st-${estado(p)}">${esSet(p) ? `${stockDe(p)}/${p.piezas.length}` : stockDe(p)}</span>${esSet(p) ? '<span class="settag">SET</span>' : ''}
+      <span class="badge st-${estado(p)}">${esSet(p) ? `${stockDe(p)}/${totPz(p)}` : stockDe(p)}</span>${esSet(p) ? '<span class="settag">SET</span>' : ''}
       <div class="pinfo"><b>${esc(p.nombre)}</b><small>${esc(p.categoria || 'Sin categoría')}</small><div class="price">${precio}</div></div></article>`;
 function renderGrid() {
   const ps = filtrar(S.q).filter(p => (!S.cat || p.categoria === S.cat) && (!S.est || estado(p) === S.est)).sort((a, b) => a.nombre.localeCompare(b.nombre));
@@ -1335,7 +1344,7 @@ function lineaHTML(l, i) {
   const set = !!l.piezas, sug = set ? sumBy(l.piezas, id => r2(num(p.precioSugerido) / nPz(p))) : num(p.precioSugerido) * l.cant;
   return `<div class="line"><div class="thumb">${fotoHTML(p, { sel: l.piezas || [] })}</div>
     <div class="li-main"><b>${esc(p.nombre)}</b>
-      ${set ? `<small>Piezas: ${l.piezas.map(id => '#' + (p.piezas.findIndex(z => z.id === id) + 1)).join(', ')}</small>` : ''}
+      ${set ? `<small>Piezas: ${pzTxt(l.piezas.map(id => p.piezas.findIndex(z => z.id === id) + 1))}</small>` : ''}
       <div class="li-row">${set ? `<span class="qty-fixed">${l.cant} pz</span>` : `<div class="step"><button data-act="cantL" data-i="${i}" data-d="-1">−</button><span>${l.cant}</span><button data-act="cantL" data-i="${i}" data-d="1">＋</button></div>`}
         <label class="pin">${set ? 'Total' : 'c/u'} $<input type="number" inputmode="decimal" min="0" step="any" data-li="${i}" value="${set ? r2(l.precio * l.cant) : r2(l.precio)}"></label></div>
       ${sug ? `<small>Sugerido: ${money(sug)}</small>` : ''}</div>
@@ -1365,11 +1374,12 @@ function renderTotales() {
 function agregarCarrito(p, piezas = null, cant = 1) {
   let l = S.carrito.find(l => l.pid === p.id);
   if (esSet(p)) {
-    const disp = new Set(p.piezas.filter(z => !z.vendida).map(z => z.id));
-    const ids = (piezas || [...disp]).filter(id => disp.has(id));
-    if (!ids.length) { toast('No hay piezas disponibles seleccionadas', 'warn'); return false; }
+    const ya = l?.piezas || [], resta = z => dispPz(z) - cuentaEn(ya, z.id);
+    const ids = piezas ? p.piezas.filter(z => piezas.includes(z.id) && resta(z) > 0).map(z => z.id) : p.piezas.flatMap(z => Array(Math.max(0, resta(z))).fill(z.id));
+    if (!ids.length) { toast(ya.length ? 'Ya están en el ticket todas las existencias' : 'No hay piezas disponibles seleccionadas', 'warn'); return false; }
     if (!l) { l = { pid: p.id, piezas: [], cant: 0, precio: 0 }; S.carrito.push(l); }
-    l.piezas = [...new Set([...l.piezas, ...ids])]; l.cant = l.piezas.length;
+    const ord = id => p.piezas.findIndex(z => z.id === id);
+    l.piezas = [...l.piezas, ...ids].sort((a, b) => ord(a) - ord(b)); l.cant = l.piezas.length;
     l.precio = sumBy(l.piezas, id => precioPieza(p, p.piezas.find(z => z.id === id))) / l.cant;
   } else {
     const st = stockDe(p);
@@ -1452,7 +1462,7 @@ function abrirVenta(id) {
     if (!v) return head('Venta') + '<p class="empty">No encontrada</p>';
     return `${head('🧾 ' + fechaTxt(v.fecha))}
       ${v.estado === 'cancelada' ? '<p class="cancel-banner">Venta cancelada · el stock fue devuelto</p>' : ''}
-      ${v.items.map(it => `<div class="it"><div><b>${esc(it.nombre)}</b><small>${it.piezasNum ? 'Piezas #' + it.piezasNum.join(', #') + ' · ' : ''}${it.cant} × ${money(it.precio)}${it.sugerido && it.precio !== it.sugerido ? ` (sugerido ${money(it.sugerido)})` : ''}</small></div><b>${money(it.importe)}</b></div>`).join('')}
+      ${v.items.map(it => `<div class="it"><div><b>${esc(it.nombre)}</b><small>${it.piezasNum ? 'Piezas ' + pzTxt(it.piezasNum) + ' · ' : ''}${it.cant} × ${money(it.precio)}${it.sugerido && it.precio !== it.sugerido ? ` (sugerido ${money(it.sugerido)})` : ''}</small></div><b>${money(it.importe)}</b></div>`).join('')}
       <div class="tot"><div><span>Subtotal</span><span>${money(v.subtotal)}</span></div>${v.descuento ? `<div><span>Descuento</span><span>−${money(v.descuento)}</span></div>` : ''}
         <div><span>Costo</span><span>${money(v.costoTotal)}</span></div>${v.comision ? `<div><span>Comisión</span><span>−${money(v.comision)}</span></div>` : ''}<div><span>Ganancia</span><span>${money(v.ganancia)}</span></div>
         <div class="big"><span>Total</span><span>${money(v.total)}</span></div></div>
@@ -1699,6 +1709,7 @@ function piezaPDF(g, p, z, i, x, y, w, im, imSet, links, t) {
   const br = Math.max(20, Math.round(w * .11));
   g.beginPath(); g.arc(x + br + 6, y + br + 6, br, 0, 7); g.fillStyle = vend ? '#9a8fb0' : ap ? PAL.yellow : PAL.pink; g.fill(); g.lineWidth = 3; g.strokeStyle = PAL.ink; g.stroke();
   pdfTexto(g, String(i + 1), x + br + 6, y + br + 7, { size: Math.round(br * 1.05), peso: 400, fam: FT_T, col: ap ? PAL.ink : '#fff', al: 'center', base: 'middle' });
+  if (dispPz(z) > 1) { const tx = `×${dispPz(z)}`, sz = Math.max(18, Math.round(w * .1)); g.font = `800 ${sz}px ${FT_B}`; pildora(g, tx, x + w - 16 - g.measureText(tx).width - 36, y + 16, { fondo: PAL.yellow, size: sz }); }
   const fz = Math.max(17, Math.round(w * .085));
   g.font = `800 ${fz}px ${FT_B}`; pdfTexto(g, pdfLineas(g, z.nombre || `Pieza ${i + 1}`, w - 24, 1)[0], x + 12, y + w + 4, { size: fz, col: vend ? PAL.muted : PAL.ink });
   pdfTexto(g, vend ? 'Vendida' : ap ? 'Apartada' : precioCorto(precioPieza(p, z)), x + 12, y + w + 8 + fz * 1.25, { size: Math.round(fz * 1.3), peso: 400, fam: FT_T, col: vend ? PAL.muted : ap ? PAL.ink : PAL.pink });
@@ -1734,7 +1745,7 @@ function setPDF(g, p, idx, im, fotosPz, links, t, BOT) {
   escenario(g, MG, yy, iw, imgH, idx, 30, 26);
   dibujarFoto(g, im, p, MG, yy, iw, imgH, 44);
   yy += imgH + 46;
-  titular(g, 'PIEZAS DEL SET', MG - 6, yy, { size: 32, sub: `${st} de ${n} disponibles` });
+  titular(g, 'PIEZAS DEL SET', MG - 6, yy, { size: 32, sub: `${st} de ${totPz(p)} disponibles` });
   yy += HEAD;
   p.piezas.forEach((z, i) => {
     const fila = Math.floor(i / cols), enFila = Math.min(cols, n - fila * cols), tw = enFila * cw + (enFila - 1) * GAP;   // la última fila va centrada
@@ -1929,7 +1940,7 @@ async function ticketCanvas(v, t = S.tienda) {
   corte();
   v.items.forEach(it => {
     linea(it.nombre + (it.libre ? ' · por pedido' : ''), { size: 22, w: 800, al: 'left', gap: 1.3 });
-    fila(`${it.cant} × ${money(it.precio)}${it.piezasNum?.length ? ' · pzas #' + it.piezasNum.join(', #') : ''}`, money(it.importe), { size: 20, col: GRIS });
+    fila(`${it.cant} × ${money(it.precio)}${it.piezasNum?.length ? ' · pzas ' + pzTxt(it.piezasNum) : ''}`, money(it.importe), { size: 20, col: GRIS });
     y += 6;
   });
   corte();
@@ -2005,7 +2016,7 @@ function abrirNuevoApartado() {
     const c = this.ctx;
     return `${head('📌 Nuevo apartado')}
       <p class="hint">Las piezas del ticket se reservan (salen del stock disponible) hasta que se entreguen o se cancele el apartado.</p>
-      ${c.items.map(i => `<div class="it"><div><b>${esc(i.nombre)}</b><small>${i.piezasNum ? 'Piezas #' + i.piezasNum.join(', #') + ' · ' : ''}${i.cant} × ${money(i.precio)}</small></div><b>${money(i.importe)}</b></div>`).join('')}
+      ${c.items.map(i => `<div class="it"><div><b>${esc(i.nombre)}</b><small>${i.piezasNum ? 'Piezas ' + pzTxt(i.piezasNum) + ' · ' : ''}${i.cant} × ${money(i.precio)}</small></div><b>${money(i.importe)}</b></div>`).join('')}
       ${c.desc ? `<div class="it"><div><b>Descuento</b></div><b>−${money(c.desc)}</b></div>` : ''}
       ${c.libres.map((l, i) => `<div class="it"><div><b>${esc(l.nombre)}</b> <span class="tag">por pedido</span><small>${l.cant} × ${money(l.precio)}</small></div><b>${money(l.importe)} <button class="x" data-act="apQuitarLibre" data-i="${i}">✕</button></b></div>`).join('')}
       <div class="card np"><b>🛍️ Artículo por pedido / preventa</b><small class="meta"> (aún no está en tu inventario)</small>
@@ -2040,7 +2051,7 @@ function abrirApartado(id) {
     return `${head('📌 ' + esc(a.cliente))}
       ${a.estado === 'cancelado' ? '<p class="cancel-banner">Apartado cancelado · las piezas regresaron al inventario</p>' : a.estado === 'liquidado' ? '<p class="meta">✅ Entregado y convertido en venta</p>' : apVencido(a) ? '<p class="cancel-banner">⏰ La fecha límite ya pasó</p>' : ''}
       <p class="meta">${fechaTxt(a.fecha)} · vence ${new Date(a.vence).toLocaleDateString('es-MX')}${tel ? ' · 📱 ' + esc(tel) : ''}${a.canal ? ' · 📣 ' + esc(a.canal) : ''}</p>
-      ${a.items.map(i => `<div class="it"><div><b>${esc(i.nombre)}</b>${i.libre ? ' <span class="tag">por pedido</span>' : ''}<small>${i.piezasNum ? 'Piezas #' + i.piezasNum.join(', #') + ' · ' : ''}${i.cant} × ${money(i.precio)}</small></div><b>${money(i.importe)}</b></div>`).join('')}
+      ${a.items.map(i => `<div class="it"><div><b>${esc(i.nombre)}</b>${i.libre ? ' <span class="tag">por pedido</span>' : ''}<small>${i.piezasNum ? 'Piezas ' + pzTxt(i.piezasNum) + ' · ' : ''}${i.cant} × ${money(i.precio)}</small></div><b>${money(i.importe)}</b></div>`).join('')}
       <h3 style="margin-top:12px">💵 Pagos</h3>
       ${a.pagos.map(x => `<div class="it"><div><b>${x.monto < 0 ? 'Reembolso' : 'Abono'}</b><small>${fechaTxt(x.fecha)} · ${esc(x.metodo)}</small></div><b class="${x.monto < 0 ? 'neg' : ''}">${money(x.monto)}</b></div>`).join('') || '<p class="empty">Sin pagos todavía</p>'}
       <div class="tot"><div><span>Total</span><span>${money(a.total)}</span></div><div><span>Pagado</span><span>${money(a.pagado)}</span></div>
@@ -2140,7 +2151,7 @@ const guardarConteo = () => { try { S.conteo ? localStorage.setItem(K('ks_conteo
 const ctProductos = () => [...S.productos.values()].filter(p => !S.conteo.cat || p.categoria === S.conteo.cat).sort((a, b) => a.nombre.localeCompare(b.nombre));
 function ctDif(p) {
   const v = S.conteo.vals[p.id]; if (v == null) return null;
-  if (esSet(p)) { const disp = p.piezas.filter(z => !z.vendida).map(z => z.id); return v.presentes.length - disp.length || (v.presentes.some(id => !disp.includes(id)) ? 0.5 : 0); }
+  if (esSet(p)) return v.presentes.length - stockDe(p) || (p.piezas.some(z => !z.ap && cuentaEn(v.presentes, z.id) !== dispPz(z)) ? 0.5 : 0);
   return num(v) - stockDe(p);
 }
 function ctFila(p) {
@@ -2148,9 +2159,9 @@ function ctFila(p) {
   const st = !hecho ? '<span class="ct-st meta">—</span>' : d === 0 ? '<span class="ct-st pos">✓</span>' : `<span class="ct-st neg">${d === 0.5 ? '≠' : (d > 0 ? '+' : '') + d}</span>`;
   if (!esSet(p)) return `<div class="ct-row${hecho ? ' hecho' : ''}" id="ct-${p.id}"><div class="thumb">${fotoHTML(p)}</div><div class="ct-m"><b>${esc(p.nombre)}</b><small class="meta">Sistema: ${stockDe(p)}${p.codigo ? ' · #' + esc(p.codigo) : ''}</small></div>
     <input type="number" inputmode="numeric" min="0" step="1" data-ct="${p.id}" value="${hecho ? esc(v) : ''}" placeholder="${stockDe(p)}">${st}</div>`;
-  const pres = hecho ? v.presentes : p.piezas.filter(z => !z.vendida).map(z => z.id);
-  return `<div class="ct-row${hecho ? ' hecho' : ''}" id="ct-${p.id}"><div class="thumb">${fotoHTML(p)}</div><div class="ct-m"><b>${esc(p.nombre)}</b><small class="meta">Sistema: ${stockDe(p)} de ${p.piezas.length} · toca las piezas que SÍ están</small>
-    <div class="pz-list">${p.piezas.map((z, i) => z.ap ? `<span class="pzchip off">🔒 #${i + 1}</span>` : `<button type="button" class="pzchip${pres.includes(z.id) ? '' : ' off'}" data-act="ctPz" data-id="${p.id}" data-z="${z.id}">#${i + 1}</button>`).join('')}
+  const pres = hecho ? v.presentes : multiPz(p);
+  return `<div class="ct-row${hecho ? ' hecho' : ''}" id="ct-${p.id}"><div class="thumb">${fotoHTML(p)}</div><div class="ct-m"><b>${esc(p.nombre)}</b><small class="meta">Sistema: ${stockDe(p)} de ${totPz(p)} · toca las piezas que SÍ están${p.piezas.some(z => dispPz(z) > 1) ? ' (vuelve a tocar para cambiar la cantidad)' : ''}</small>
+    <div class="pz-list">${p.piezas.map((z, i) => z.ap ? `<span class="pzchip off">🔒 #${i + 1}</span>` : `<button type="button" class="pzchip${pres.includes(z.id) ? '' : ' off'}" data-act="ctPz" data-id="${p.id}" data-z="${z.id}">#${i + 1}${dispPz(z) > 1 || cuentaEn(pres, z.id) > 1 ? ' ×' + cuentaEn(pres, z.id) : ''}</button>`).join('')}
     <button type="button" class="btn ghost sm" data-act="ctOk" data-id="${p.id}">✓ Correcto</button></div></div>${st}</div>`;
 }
 function ctResumen() {
@@ -2307,15 +2318,15 @@ function abrirDetalle(id) {
     const set = esSet(p), st = stockDe(p), mg = margen(p);
     c.sel = c.sel.filter(s => p.piezas?.some(z => z.id === s));
     const selDisp = set ? p.piezas.filter(z => c.sel.includes(z.id) && !z.vendida).length : 0;
-    const selOff = set ? c.sel.length - selDisp : 0, pf = c.cover || p.foto;
+    const selOff = set ? p.piezas.filter(z => c.sel.includes(z.id) && !z.ap).length : 0, pf = c.cover || p.foto;
     const motivoHTML = `<div class="two" style="margin:8px 0 0"><label>Motivo del ajuste *<select id="adjM"><option value="">Elige…</option>${MOTIVOS.map(m => `<option ${c.motivo === m ? 'selected' : ''}>${m}</option>`).join('')}</select></label>
       <label>Nota<input id="adjNota" value="${esc(c.nota)}" placeholder="Opcional"></label></div>`;
     return `${head(esc(p.nombre))}<div class="det">
       <div class="det-photo">${fotoHTML({ ...p, foto: pf }, { cls: 'big' + (set ? ' inter' : ''), sel: c.sel })}
-        ${set && !p.foto ? `<div class="pz-list">${p.piezas.map((z, i) => `<button type="button" class="pzchip${z.vendida ? ' off' : ''}${c.sel.includes(z.id) ? ' on' : ''}" data-act="selPz" data-id="${z.id}">#${i + 1}${z.nombre ? ' ' + esc(z.nombre) : ''}</button>`).join('')}</div>` : ''}
+        ${set && !p.foto ? `<div class="pz-list">${p.piezas.map((z, i) => `<button type="button" class="pzchip${z.vendida ? ' off' : ''}${c.sel.includes(z.id) ? ' on' : ''}" data-act="selPz" data-id="${z.id}">#${i + 1}${z.nombre ? ' ' + esc(z.nombre) : ''}${xN(z)}</button>`).join('')}</div>` : ''}
         ${set ? `<p class="hint">👆 Toca las piezas para seleccionarlas · ${c.sel.length} seleccionada(s)</p>` : ''}
         ${p.foto && c.gal?.length ? `<div class="gal">${[{ foto: pf }, ...c.gal].map((f, i) => { const nums = i ? pzDeFoto(p, f.id) : []; return `<div class="gth${i ? '' : ' cover'}" data-act="verFoto" data-i="${i}"><img src="${f.foto}" alt="">${i ? (nums.length ? `<em>#${nums.join(', #')}</em>` : '') : '<em>Portada</em>'}</div>`; }).join('')}</div>` : ''}</div>
-      <div><div class="row-btns" style="margin:0"><span class="badge st-${estado(p)}">${set ? `${st} de ${p.piezas.length} piezas` : `${st} en stock`}</span>
+      <div><div class="row-btns" style="margin:0"><span class="badge st-${estado(p)}">${set ? `${st} de ${totPz(p)} piezas` : `${st} en stock`}</span>
           ${p.categoria ? `<span class="tag">${esc(p.categoria)}</span>` : ''}${p.codigo ? `<span class="tag">#${esc(p.codigo)}</span>` : ''}${set ? '<span class="tag">🧩 Set</span>' : ''}</div>
         <div class="prices"><div><small>Costo</small><b>${money(p.costo)}</b></div><div><small>Sugerido</small><b>${money(p.precioSugerido)}</b></div>
           <div class="hl"><small>Venta</small><b>${money(precioDe(p))}</b></div><div><small>Margen</small><b class="${mg < 0 ? 'neg' : ''}">${mg.toFixed(0)}%</b></div></div>
@@ -2326,8 +2337,8 @@ function abrirDetalle(id) {
             <button class="btn" data-act="addSet" ${st ? '' : 'disabled'}>🛒 Todo lo disponible (${st})</button></div>
           <div class="adj"><div style="flex:1 1 100%"><b>🛠️ Ajustar piezas seleccionadas</b>${motivoHTML}</div>
             <div class="row-btns sm" style="margin:0"><button class="btn ghost" data-act="selTodo">${c.sel.length ? 'Limpiar selección' : 'Seleccionar todas'}</button>
-            <button class="btn ghost" data-act="marcarPz" data-v="1" ${selDisp ? '' : 'disabled'}>🚫 No disponible</button>
-            <button class="btn ghost" data-act="marcarPz" data-v="0" ${selOff ? '' : 'disabled'}>♻️ Disponible</button></div></div>`
+            <button class="btn ghost" data-act="marcarPz" data-v="1" ${selDisp ? '' : 'disabled'}>➖ Salida (1 c/u)</button>
+            <button class="btn ghost" data-act="marcarPz" data-v="0" ${selOff ? '' : 'disabled'}>➕ Entrada (1 c/u)</button></div></div>`
         : `<div class="qtyrow"><div class="step"><button data-act="dq" data-d="-1">−</button><span>${c.qty}</span><button data-act="dq" data-d="1">＋</button></div>
             <button class="btn pri" data-act="addInd" ${st ? '' : 'disabled'}>🛒 Agregar al ticket</button></div>
           <div class="adj"><div style="flex:1 1 100%"><b>🛠️ Ajustar stock</b> <small>(para mercancía nueva usa 🚚 Registrar compra)</small>${motivoHTML}</div>
@@ -2405,17 +2416,19 @@ function mgTxt(r, d) {
 }
 function pzArea(c) {
   const d = c.d;
-  if (!d.foto) return `<div class="box big"><div class="nofoto">📸<span>Agrega una foto${esSet(d) ? '<br>(una sola foto con todas las piezas del set)' : ''}</span></div></div>`;
+  const sinFoto = `<div class="box big"><div class="nofoto">📸<span>Agrega una foto${esSet(d) ? '<br>(una sola foto con todas las piezas del set)' : ''}</span></div></div>`;
+  if (!d.foto && !(esSet(d) && d.piezas.length)) return sinFoto;
   if (!esSet(d)) return fotoHTML(d, { cls: 'big' });
   const z = d.piezas.find(z => z.id === c.sel), i = d.piezas.indexOf(z);
-  return `<p class="hint">👆 Toca la foto para marcar cada pieza · arrastra para moverla · toca un número para editarlo</p>
+  return `${d.foto ? `<p class="hint">👆 Toca la foto para marcar cada pieza · arrastra para moverla · toca un número para editarlo</p>
     ${fotoHTML(d, { cls: 'big edit inter', sel: c.sel ? [c.sel] : [] })}
-    <label class="slider">Tamaño de marcas<input type="range" min="4" max="18" value="${d.ms || 9}" data-ms></label>
-    <div class="pz-list">${d.piezas.map((z, i) => `<button type="button" class="pzchip${z.vendida ? ' off' : ''}${z.id === c.sel ? ' on' : ''}" data-act="pzSel" data-id="${z.id}">#${i + 1}${z.nombre ? ' ' + esc(z.nombre) : ''}</button>`).join('') || '<small>Aún no hay piezas marcadas</small>'}
+    <label class="slider">Tamaño de marcas<input type="range" min="4" max="18" value="${d.ms || 9}" data-ms></label>` : sinFoto + '<p class="hint">👇 Toca un número para editar esa pieza</p>'}
+    <div class="pz-list">${d.piezas.map((z, i) => `<button type="button" class="pzchip${z.vendida ? ' off' : ''}${z.id === c.sel ? ' on' : ''}" data-act="pzSel" data-id="${z.id}">#${i + 1}${z.nombre ? ' ' + esc(z.nombre) : ''}${xN(z)}</button>`).join('') || '<small>Aún no hay piezas marcadas</small>'}
       ${d.piezas.length ? '<button type="button" class="btn ghost sm" data-act="pzClear">Borrar todas</button>' : ''}</div>
     ${z ? `<div class="card pz-panel"><b>Pieza #${i + 1}</b>
       <div class="two"><label>Nombre<input data-pz="nombre" value="${esc(z.nombre)}" placeholder="Ej. Gatito azul"></label>
         <label>Precio propio<input data-pz="precio" type="number" inputmode="decimal" min="0" step="any" value="${esc(z.precio)}" placeholder="${r2(precioDe(d) / nPz(d))}"></label></div>
+      <label class="pz-cant">Existencias de esta pieza <small class="meta">(cuántas iguales te quedan)</small><div class="step"><button type="button" data-act="pzCant" data-d="-1">−</button><input data-pzn type="number" inputmode="numeric" min="0" step="1" value="${dispPz(z)}" ${z.ap ? 'disabled' : ''}><button type="button" data-act="pzCant" data-d="1">＋</button></div></label>
       <div class="pz-foto"><small class="meta">📷 Foto individual de la pieza #${i + 1} · se usa en el catálogo PDF</small>
         <div class="gal">${c.gal.map(f => `<div class="gth${z.fid === f.id ? ' cover' : ''}" data-act="pzFoto" data-id="${f.id}"><img src="${f.foto}" alt="">${z.fid === f.id ? '<em>✓ Esta pieza</em>' : ''}</div>`).join('')}
           <label class="gth gadd" title="Tomar o elegir foto de esta pieza">＋<input type="file" accept="image/*" data-pzfoto hidden></label></div>
@@ -2424,7 +2437,9 @@ function pzArea(c) {
 }
 const refreshPz = (r, c) => { $('#pzArea', r).innerHTML = pzArea(c); bindPz(r, c); };
 function bindPz(r, c) {
-  const ph = $('.box.edit .ph', r), d = c.d; if (!ph) return;
+  const ph = $('.box.edit .ph', r), d = c.d;
+  $$('[data-pzn]', r).forEach(i => i.onchange = () => { const z = d.piezas.find(z => z.id === c.sel); if (z && !z.ap) { setCant(z, i.value); refreshPz(r, c); } });
+  if (!ph) return bindPzFoto(r, c);
   let st = null;
   const pos = e => { const b = ph.getBoundingClientRect(); return { x: r2(clamp((e.clientX - b.left) / b.width * 100, 0, 100)), y: r2(clamp((e.clientY - b.top) / b.height * 100, 0, 100)) }; };
   ph.onpointerdown = e => { const el = e.target.closest('.pz'); st = { el, id: el?.dataset.z, x: e.clientX, y: e.clientY, moved: false }; ph.setPointerCapture(e.pointerId); e.preventDefault(); };
@@ -2442,6 +2457,10 @@ function bindPz(r, c) {
   };
   ph.onpointercancel = () => st = null;
   $('[data-ms]', r).oninput = e => { d.ms = num(e.target.value); ph.style.setProperty('--ms', d.ms); };
+  bindPzFoto(r, c);
+}
+function bindPzFoto(r, c) {
+  const d = c.d;
   $$('[data-pz]', r).forEach(i => i.oninput = () => { const z = d.piezas.find(z => z.id === c.sel); if (z) z[i.dataset.pz] = i.value; });
   $$('[data-pzfoto]', r).forEach(i => i.onchange = async () => {
     const f = i.files[0]; i.value = ''; const z = d.piezas.find(z => z.id === c.sel); if (!f || !z) return;
@@ -2479,8 +2498,8 @@ const ACT = {
   marcarPz: async a => {
     const c = ctx(), v = a.dataset.v === '1', p = S.productos.get(c.id);
     if (!c.motivo) return toast('Elige el motivo del ajuste', 'warn');
-    const ids = p.piezas.filter(z => c.sel.includes(z.id) && z.vendida !== v).map(z => z.id);
-    try { await Ops.marcar(c.id, ids, v, c.motivo, c.nota); Object.assign(c, { sel: [], motivo: '', nota: '' }); drawSheet(); toast(v ? 'Marcadas como no disponibles' : 'Piezas disponibles de nuevo ♻️'); } catch (e) { toast(errMsg(e), 'err'); }
+    const ids = p.piezas.filter(z => c.sel.includes(z.id) && !z.ap && (!v || dispPz(z))).map(z => z.id);
+    try { await Ops.marcar(c.id, ids, v, c.motivo, c.nota); Object.assign(c, { sel: [], motivo: '', nota: '' }); drawSheet(); toast(v ? '➖ Una pieza menos de cada seleccionada' : '➕ Una pieza más de cada seleccionada ♻️'); } catch (e) { toast(errMsg(e), 'err'); }
   },
   adj: async a => {
     const c = ctx(), n = Math.round(num(c.adjN)); if (n <= 0) return toast('Escribe una cantidad', 'warn');
@@ -2584,7 +2603,8 @@ const ACT = {
   calcPrecio: () => { const c = ctx(), r = sheetRoot(); leerForm(c.d, r); c.d.precioVenta = r2(num(c.d.costo) * (1 + num(cfg.margen) / 100)); $('[data-f=precioVenta]', r).value = c.d.precioVenta; mgTxt(r, c.d); },
   pzSel: a => { const c = ctx(); c.sel = c.sel === a.dataset.id ? null : a.dataset.id; refreshPz(sheetRoot(), c); },
   pzFoto: a => { const c = ctx(), z = c.d.piezas.find(z => z.id === c.sel); if (!z) return; leerForm(c.d, sheetRoot()); if (z.fid === a.dataset.id) delete z.fid; else z.fid = a.dataset.id; drawSheet(); },
-  pzToggle: () => { const c = ctx(), z = c.d.piezas.find(z => z.id === c.sel); z.vendida = !z.vendida; refreshPz(sheetRoot(), c); },
+  pzToggle: () => { const c = ctx(), z = c.d.piezas.find(z => z.id === c.sel); if (z.ap) return; setCant(z, z.vendida ? 1 : 0); refreshPz(sheetRoot(), c); },
+  pzCant: a => { const c = ctx(), z = c.d.piezas.find(z => z.id === c.sel); if (!z || z.ap) return; setCant(z, dispPz(z) + num(a.dataset.d)); refreshPz(sheetRoot(), c); },
   pzDel: () => { const c = ctx(); c.d.piezas = c.d.piezas.filter(z => z.id !== c.sel); c.sel = null; refreshPz(sheetRoot(), c); },
   pzClear: () => { const c = ctx(); if (confirm('¿Borrar todas las marcas?')) { c.d.piezas = []; c.sel = null; refreshPz(sheetRoot(), c); } },
   guardar: async a => {
@@ -2593,7 +2613,7 @@ const ACT = {
     if (!d.nombre) return toast('Ponle nombre al producto', 'warn');
     if (esSet(d) && !d.piezas.length && !confirm('El set no tiene piezas marcadas en la foto. ¿Guardar así?')) return;
     ['costo', 'precioSugerido', 'precioVenta', 'stock', 'stockMin'].forEach(k => d[k] = num(d[k]));
-    d.piezas.forEach(z => { z.precio = z.precio === '' || z.precio == null ? '' : num(z.precio); if (z.fid && !c.gal.some(f => f.id === z.fid)) delete z.fid; });
+    d.piezas.forEach(z => { if (!z.ap) setCant(z, dispPz(z)); z.precio = z.precio === '' || z.precio == null ? '' : num(z.precio); if (z.fid && !c.gal.some(f => f.id === z.fid)) delete z.fid; });
     if (esSet(d)) d.stock = stockDe(d);
     else if (!c.nuevo) d.stock = stockDe(S.productos.get(d.id) || d);    // el stock vigente (pudo cambiar por una venta mientras editabas)
     d.actualizado = Date.now(); a.disabled = true;
@@ -2707,9 +2727,10 @@ const ACT = {
   conteoCat: a => { S.conteoCat = a.dataset.v; render(); },
   iniciarConteo: () => { S.conteo = { id: uid(), inicio: Date.now(), cat: S.conteoCat, vals: {} }; S.qct = ''; guardarConteo(); render(); say('¡A contar! 🧮'); },
   descartarConteo: () => { if (confirm('¿Descartar el conteo en curso?')) { S.conteo = null; guardarConteo(); render(); } },
-  ctPz: a => { const p = S.productos.get(a.dataset.id), v = S.conteo.vals[p.id] ??= { presentes: p.piezas.filter(z => !z.vendida).map(z => z.id) }, z = a.dataset.z;
-    v.presentes = v.presentes.includes(z) ? v.presentes.filter(x => x !== z) : [...v.presentes, z]; guardarConteo(); $('#ct-' + p.id).outerHTML = ctFila(p); $('#ctRes').innerHTML = ctResumen(); },
-  ctOk: a => { const p = S.productos.get(a.dataset.id); S.conteo.vals[p.id] = { presentes: p.piezas.filter(z => !z.vendida).map(z => z.id) }; guardarConteo(); $('#ct-' + p.id).outerHTML = ctFila(p); $('#ctRes').innerHTML = ctResumen(); },
+  ctPz: a => { const p = S.productos.get(a.dataset.id), v = S.conteo.vals[p.id] ??= { presentes: multiPz(p) }, z = a.dataset.z;
+    const c = cuentaEn(v.presentes, z), max = Math.max(1, dispPz(p.piezas.find(x => x.id === z)));
+    v.presentes = [...v.presentes.filter(x => x !== z), ...Array(c >= max ? 0 : c + 1).fill(z)]; guardarConteo(); $('#ct-' + p.id).outerHTML = ctFila(p); $('#ctRes').innerHTML = ctResumen(); },
+  ctOk: a => { const p = S.productos.get(a.dataset.id); S.conteo.vals[p.id] = { presentes: multiPz(p) }; guardarConteo(); $('#ct-' + p.id).outerHTML = ctFila(p); $('#ctRes').innerHTML = ctResumen(); },
   aplicarConteo: async a => {
     const difs = ctProductos().filter(p => S.conteo.vals[p.id] != null && ctDif(p) !== 0).map(p => esSet(p) ? { pid: p.id, presentes: S.conteo.vals[p.id].presentes } : { pid: p.id, contado: S.conteo.vals[p.id] });
     const n = ctProductos().filter(p => S.conteo.vals[p.id] != null).length;
@@ -2822,7 +2843,7 @@ addEventListener('offline', render);
 
 /* ---------- Catálogo público (index.html?catalogo) ---------- */
 const desdePub = d => ({ id: d.id, nombre: d.nombre, categoria: d.categoria, codigo: d.codigo, tipo: d.tipo, foto: d.foto, ar: d.ar, ms: d.ms, precioVenta: d.precio, precioSugerido: 0,
-  stock: d.disponible, piezas: (d.piezas || []).map((z, i) => ({ id: 'z' + i, x: z.x, y: z.y, vendida: !!z.v, nombre: z.n || '', precio: z.p ?? '' })) });
+  stock: d.disponible, piezas: (d.piezas || []).map((z, i) => ({ id: 'z' + i, x: z.x, y: z.y, vendida: !!z.v, ...(z.c > 1 ? { cant: z.c } : {}), nombre: z.n || '', precio: z.p ?? '' })) });
 async function bootCatalogo() {
   document.body.classList.add('catalogo'); S.view = 'catalogo';
   $('#main').innerHTML = `<div class="loader">${mascota('lg')}Cargando catálogo…</div>`;
@@ -2858,7 +2879,7 @@ function renderCatGrid() {
   $('#catChips').innerHTML = chip('cCat', '', '🌈 Todo', !S.cat) + cats.map(c => chip('cCat', c, esc(c), S.cat === c)).join('');
   const q = S.q.trim().toLowerCase();
   $('#catGrid').innerHTML = ps.filter(p => (!S.cat || p.categoria === S.cat) && (!q || [p.nombre, p.codigo, p.categoria].some(x => String(x || '').toLowerCase().includes(q))))
-    .sort((a, b) => a.nombre.localeCompare(b.nombre)).map(p => cardHTML(p, 'cVer', esSet(p) ? `${money(precioPieza(p, {}))} c/u<small>${stockDe(p)} de ${p.piezas.length} disponibles</small>` : money(precioDe(p))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre)).map(p => cardHTML(p, 'cVer', esSet(p) ? `${money(precioPieza(p, {}))} c/u<small>${stockDe(p)} de ${totPz(p)} disponibles</small>` : money(precioDe(p))
       + (stockDe(p) <= 2 ? `<small>¡${stockDe(p) === 1 ? 'Última pieza' : 'Últimas piezas'}!</small>` : ''))).join('')
     || `<div class="empty" style="grid-column:1/-1">${mascota('lg')}<p>${ps.length ? 'Sin coincidencias 🔎' : 'Pronto tendremos productos aquí ✨'}</p></div>`;
 }
@@ -2871,11 +2892,11 @@ function abrirCat(id) {
     const precio = set ? (nums.length ? sumBy(p.piezas.filter(z => c.sel.includes(z.id)), z => precioPieza(p, z)) : precioPieza(p, {})) : precioDe(p);
     const msg = `Hola ${t.nombre || ''} 👋, me interesa: ${p.nombre}${p.codigo ? ' (' + p.codigo + ')' : ''}${nums.length ? ' — piezas #' + nums.join(', #') : ''} · ${money(precio)}${set && !nums.length ? ' c/u' : ''}. ¿Sigue disponible?`;
     return `${head(esc(p.nombre))}<div class="det"><div class="det-photo">${fotoHTML(p, { cls: 'big' + (set ? ' inter' : ''), sel: c.sel })}
-        ${set && !p.foto ? `<div class="pz-list">${p.piezas.map((z, i) => z.vendida ? `<span class="pzchip off">#${i + 1}</span>` : `<button type="button" class="pzchip${c.sel.includes(z.id) ? ' on' : ''}" data-act="cSel" data-id="${z.id}">#${i + 1}${z.nombre ? ' ' + esc(z.nombre) : ''}</button>`).join('')}</div>` : ''}
+        ${set && !p.foto ? `<div class="pz-list">${p.piezas.map((z, i) => z.vendida ? `<span class="pzchip off">#${i + 1}</span>` : `<button type="button" class="pzchip${c.sel.includes(z.id) ? ' on' : ''}" data-act="cSel" data-id="${z.id}">#${i + 1}${z.nombre ? ' ' + esc(z.nombre) : ''}${xN(z)}</button>`).join('')}</div>` : ''}
         ${set ? `<p class="hint">👆 Toca las piezas que te gustan · las tachadas ya se vendieron</p>` : ''}</div>
       <div>${p.categoria ? `<span class="tag">${esc(p.categoria)}</span>` : ''}
         <div class="prices" style="grid-template-columns:1fr 1fr"><div class="hl"><small>${set ? (nums.length ? `${nums.length} pieza(s)` : 'Precio por pieza') : 'Precio'}</small><b>${money(precio)}</b></div>
-          <div><small>Disponibles</small><b>${set ? `${stockDe(p)} de ${p.piezas.length}` : stockDe(p)}</b></div></div>
+          <div><small>Disponibles</small><b>${set ? `${stockDe(p)} de ${totPz(p)}` : stockDe(p)}</b></div></div>
         ${t.whatsapp ? `<a class="btn ok cobrar" target="_blank" rel="noopener" href="${waLink(t.whatsapp, msg)}">💬 Lo quiero</a>` : '<p class="hint">Contáctanos por nuestras redes para pedirlo ✨</p>'}
       </div></div>`;
   }, mount(r) {

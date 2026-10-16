@@ -644,6 +644,15 @@ const margen = p => { const pv = precioDe(p); return pv ? (pv - num(p.costo)) / 
 const estado = p => { const s = stockDe(p); return s <= 0 ? 'agotado' : s <= num(p.stockMin) ? 'bajo' : 'ok'; };
 const categorias = () => [...new Set([...S.productos.values()].map(p => (p.categoria || '').trim()).filter(Boolean))].sort();
 const ventasOk = () => S.ventas.filter(v => v.estado !== 'cancelada');
+/* En la nube la app escucha solo las ventas desde el inicio del mes de hace 3 meses (ahorra lecturas gratuitas).
+   Las anteriores se descargan una vez, solo cuando se consultan (rango "Todo", clientes, respaldo). */
+const inicioVentana = () => { const d = new Date(); d.setMonth(d.getMonth() - 3, 1); d.setHours(0, 0, 0, 0); return d.getTime(); };
+const ventasTodas = () => S.ventasAnt ? [...S.ventas, ...S.ventasAnt] : S.ventas;
+async function cargarVentasAnt() {
+  if (DB !== FB || S.ventasAnt || S.cargandoAnt) return; S.cargandoAnt = true;
+  try { const { F, db } = FB; S.ventasAnt = (await FB.leer(F.query(F.collection(db, 'ventas'), F.where('fecha', '<', S.ventana || inicioVentana()), F.orderBy('fecha', 'desc')))).sort((a, b) => b.fecha - a.fecha); render(); }
+  finally { S.cargandoAnt = false; }
+}
 const CANALES_DEF = ['En persona', 'WhatsApp', 'Bazar / evento', 'Marketplace', 'Instagram', 'Envío a domicilio'];
 const canales = () => S.tienda.canales?.length ? S.tienda.canales : CANALES_DEF;
 const METODOS = ['Efectivo', 'Tarjeta', 'Transferencia'];
@@ -769,7 +778,7 @@ const FB = {
     this.auth = U.getAuth(app);
     await new Promise(res => U.onAuthStateChanged(this.auth, user => {
       S.user = user; this.unsub.forEach(f => f()); this.unsub = [];
-      S.listo = false; S.productos = new Map(); S.ventas = []; LISTAS.forEach(c => S[c] = []); S.movs = null;
+      S.listo = false; S.productos = new Map(); S.ventas = []; S.ventasAnt = null; LISTAS.forEach(c => S[c] = []); S.movs = null;
       if (user) this.listen();
       render(); res();
     }));
@@ -779,7 +788,8 @@ const FB = {
     const emit = () => p && v && onData(p, v);
     const err = e => { console.error(e); toast(e.code === 'permission-denied' ? 'Sin permiso: revisa las reglas de Firestore' : 'Error de nube: ' + e.message, 'err'); };
     this.unsub.push(F.onSnapshot(F.collection(db, 'productos'), s => { p = s.docs.map(d => d.data()); emit(); }, err));
-    this.unsub.push(F.onSnapshot(F.query(F.collection(db, 'ventas'), F.orderBy('fecha', 'desc'), F.limit(2000)), s => { v = s.docs.map(d => d.data()); emit(); }, err));
+    S.ventana = inicioVentana();
+    this.unsub.push(F.onSnapshot(F.query(F.collection(db, 'ventas'), F.where('fecha', '>=', S.ventana), F.orderBy('fecha', 'desc'), F.limit(2000)), s => { v = s.docs.map(d => d.data()); emit(); }, err));
     const errExtra = e => e.code === 'permission-denied' ? avisoReglas() : console.error(e);
     this.unsub.push(F.onSnapshot(F.doc(db, 'config', 'tienda'), s => setTienda(s.data()), errExtra));
     this.unsub.push(F.onSnapshot(F.query(F.collection(db, 'compras'), F.orderBy('fecha', 'desc'), F.limit(1000)), s => onCol('compras', s.docs.map(d => d.data())), errExtra));
@@ -1699,7 +1709,8 @@ async function cobrar(btn) {
 
 function ventasRango() {
   const desde = { hoy: dia(), '7d': dia(Date.now(), 6), mes: inicioMes(), todo: 0 }[S.rango];
-  return S.ventas.filter(v => v.fecha >= desde);
+  if (S.rango === 'todo' && DB === FB && !S.ventasAnt) setTimeout(cargarVentasAnt);
+  return ventasTodas().filter(v => v.fecha >= desde);
 }
 const TABS_VEN = [['ventas', '🧾 Ventas'], ['apartados', '📌 Apartados'], ['clientes', '👥 Clientes'], ['corte', '💰 Corte de caja']];
 function vVentas() {
@@ -1717,6 +1728,7 @@ function vVentasLista() {
   const grupos = {};
   vs.forEach(v => (grupos[new Date(v.fecha).toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })] ??= []).push(v));
   return `<div class="chips">${[['hoy', 'Hoy'], ['7d', '7 días'], ['mes', 'Este mes'], ['todo', 'Todo']].map(([v, t]) => chip('rango', v, t, S.rango === v)).join('')}</div>
+    ${S.rango === 'todo' && DB === FB && !S.ventasAnt ? '<p class="hint">⏳ Cargando el historial completo de ventas…</p>' : ''}
     <div class="kpis">${kpi('Vendido', money(total), `${ok.length} ticket(s)`, 'var(--pink)')}${kpi('Ganancia', money(sumBy(ok, v => v.ganancia)), total ? `${(sumBy(ok, v => v.ganancia) / total * 100).toFixed(0)}% de margen` : '—', 'var(--green)')}
       ${kpi('Ticket promedio', money(ok.length ? total / ok.length : 0), `${sumBy(ok, v => sumBy(v.items, i => i.cant))} pieza(s)`, 'var(--cyan)')}
       ${com ? kpi('Comisiones', money(com), 'ya descontadas de la ganancia', 'var(--yellow)') : ''}</div>
@@ -1732,7 +1744,7 @@ function vVentasLista() {
 }
 function abrirVenta(id) {
   openSheet({ live: true, ctx: { id }, html() {
-    const v = S.ventas.find(x => x.id === this.ctx.id);
+    const v = ventasTodas().find(x => x.id === this.ctx.id);
     if (!v) return head('Venta') + '<p class="empty">No encontrada</p>';
     return `${head('🧾 ' + fechaTxt(v.fecha))}
       ${v.estado === 'cancelada' ? '<p class="cancel-banner">Venta cancelada · el stock fue devuelto</p>' : ''}
@@ -2435,8 +2447,8 @@ function abrirApartado(id) {
 
 /* ---------- Clientes ---------- */
 function statsCli(c) {
-  const k = c.nombre.trim().toLowerCase();
-  const vs = S.ventas.filter(v => v.estado !== 'cancelada' && (v.clienteId === c.id || (!v.clienteId && (v.cliente || '').trim().toLowerCase() === k)));
+  const k = c.nombre.trim().toLowerCase(); if (DB === FB && !S.ventasAnt) setTimeout(cargarVentasAnt);
+  const vs = ventasTodas().filter(v => v.estado !== 'cancelada' && (v.clienteId === c.id || (!v.clienteId && (v.cliente || '').trim().toLowerCase() === k)));
   return { vs, n: vs.length, total: sumBy(vs, v => v.total), ultima: vs[0]?.fecha, aps: S.apartados.filter(a => a.clienteId === c.id && a.estado === 'activo') };
 }
 function listaClientes() {
@@ -2473,7 +2485,7 @@ function abrirCliente(id) {
 function corteDe(d0) {
   const d1 = d0 + 864e5, en = t => t >= d0 && t < d1, met = {};
   const add = (m, k, x) => { met[m] ??= { ventas: 0, abonos: 0, devol: 0 }; met[m][k] += x; };
-  S.ventas.forEach(v => {
+  ventasTodas().forEach(v => {
     if (en(v.fecha) && v.origen !== 'apartado') pagosDe(v).forEach(x => add(x.metodo, 'ventas', x.monto));
     if (v.estado === 'cancelada' && en(v.canceladaEn)) pagosDe(v).forEach(x => add(x.metodo, 'devol', x.monto));
   });
@@ -3169,12 +3181,12 @@ const ACT = {
   // ventas
   verVenta: a => abrirVenta(a.dataset.id),
   cancelarVenta: async a => {
-    const v = S.ventas.find(x => x.id === ctx().id);
+    const v = ventasTodas().find(x => x.id === ctx().id);
     if (!v || !confirm('¿Cancelar esta venta? El stock y las piezas regresarán al inventario.')) return;
     a.disabled = true;
-    try { await Ops.cancelar(v); toast('Venta cancelada ↩️'); } catch (e) { a.disabled = false; toast(e.message, 'err'); }
+    try { await Ops.cancelar(v); if (S.ventasAnt?.includes(v)) { Object.assign(v, { estado: 'cancelada', canceladaEn: Date.now() }); drawSheet(); render(); } toast('Venta cancelada ↩️'); } catch (e) { a.disabled = false; toast(e.message, 'err'); }
   },
-  verTicket: () => abrirTicket(S.ventas.find(x => x.id === ctx().id)),
+  verTicket: () => abrirTicket(ventasTodas().find(x => x.id === ctx().id)),
   tkDescargar: async () => { const f = await tkArchivo(); descargar(f, f.name); },
   tkCompartir: async () => {
     try { const f = await tkArchivo(); if (navigator.canShare?.({ files: [f] })) await navigator.share({ files: [f], title: f.name }); else descargar(f, f.name); }
@@ -3207,7 +3219,7 @@ const ACT = {
   },
   backup: async () => {
     const cols = ['fotos', 'movimientos', ...LISTAS], datos = await Promise.all(cols.map(c => DB.todos(c)));
-    descargar(new Blob([JSON.stringify({ app: 'kawaii-stock', version: 4, fecha: new Date().toISOString(), productos: [...S.productos.values()], ventas: S.ventas,
+    descargar(new Blob([JSON.stringify({ app: 'kawaii-stock', version: 4, fecha: new Date().toISOString(), productos: [...S.productos.values()], ventas: DB === FB ? await DB.todos('ventas') : S.ventas,
       ...Object.fromEntries(cols.map((c, i) => [c, datos[i]])), config: S.tienda.id ? [S.tienda] : [] })], { type: 'application/json' }), `respaldo_${hoyISO()}.json`);
   },
   csvInv: () => csv([['Nombre', 'Tipo', 'Categoría', 'Código', 'Stock', 'Piezas totales', 'Stock mínimo', 'Costo', 'Precio sugerido', 'Precio venta', 'Margen %', 'Notas'],
@@ -3239,7 +3251,7 @@ addEventListener('offline', render);
 const desdePub = d => ({ id: d.id, nombre: d.nombre, categoria: d.categoria, codigo: d.codigo, tipo: d.tipo, foto: d.foto, ar: d.ar, ms: d.ms, precioVenta: d.precio, precioSugerido: 0,
   stock: d.disponible, nuevo: d.nuevo || 0, piezas: (d.piezas || []).map((z, i) => ({ id: 'z' + i, x: z.x, y: z.y, vendida: !!z.v, ...(z.c > 1 ? { cant: z.c } : {}), f: z.f, nombre: z.n || '', precio: z.p ?? '' })) });
 /* El catálogo usa Firestore "lite": lecturas HTTPS normales (sin conexión en tiempo real), que funcionan
-   también en datos móviles donde algunas redes bloquean las conexiones persistentes. Se actualiza solo cada 90 s. */
+   también en datos móviles donde algunas redes bloquean las conexiones persistentes. Se actualiza solo cada 5 min (y al volver a la pestaña). */
 async function bootCatalogo() {
   document.body.classList.add('catalogo'); S.view = 'catalogo';
   $('#main').innerHTML = `<div class="loader">${mascota('lg')}Cargando catálogo…</div>`;
@@ -3270,7 +3282,9 @@ async function bootCatalogo() {
   }
   clearTimeout(lento);
   const refrescar = () => { if (document.visibilityState === 'visible' && !S.sheet) cargar().catch(() => {}); };
-  setInterval(refrescar, 90000); document.addEventListener('visibilitychange', refrescar);
+  let ultima = Date.now(); const cada = 5 * 60000;
+  setInterval(() => { if (Date.now() - ultima >= cada) { ultima = Date.now(); refrescar(); } }, 30000);
+  document.addEventListener('visibilitychange', () => { if (Date.now() - ultima >= 60000) { ultima = Date.now(); refrescar(); } });
 }
 /* Catálogo web: mismo lenguaje visual que el PDF ("Candy Ledger"), en una sola página continua, con carrito */
 const MEDIA = id => id + '__f', MEDIA_PZ = (id, i) => `${id}__z${i}`, MEDIA_G = (id, k) => `${id}__g${k}`;

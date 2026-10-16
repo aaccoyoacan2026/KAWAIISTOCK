@@ -764,7 +764,7 @@ const FB = {
     const [A, F, U] = await Promise.all(['firebase-app', 'firebase-firestore', 'firebase-auth'].map(m => import(base + m + '.js')));
     this.F = F; this.U = U;
     const app = A.initializeApp(cfg.fb);
-    try { this.db = F.initializeFirestore(app, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) }); }
+    try { this.db = F.initializeFirestore(app, { experimentalForceLongPolling: true, localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) }); }
     catch { this.db = F.getFirestore(app); }
     this.auth = U.getAuth(app);
     await new Promise(res => U.onAuthStateChanged(this.auth, user => {
@@ -3238,23 +3238,39 @@ addEventListener('offline', render);
 /* ---------- Catálogo público (index.html?catalogo) ---------- */
 const desdePub = d => ({ id: d.id, nombre: d.nombre, categoria: d.categoria, codigo: d.codigo, tipo: d.tipo, foto: d.foto, ar: d.ar, ms: d.ms, precioVenta: d.precio, precioSugerido: 0,
   stock: d.disponible, nuevo: d.nuevo || 0, piezas: (d.piezas || []).map((z, i) => ({ id: 'z' + i, x: z.x, y: z.y, vendida: !!z.v, ...(z.c > 1 ? { cant: z.c } : {}), f: z.f, nombre: z.n || '', precio: z.p ?? '' })) });
+/* El catálogo usa Firestore "lite": lecturas HTTPS normales (sin conexión en tiempo real), que funcionan
+   también en datos móviles donde algunas redes bloquean las conexiones persistentes. Se actualiza solo cada 90 s. */
 async function bootCatalogo() {
   document.body.classList.add('catalogo'); S.view = 'catalogo';
   $('#main').innerHTML = `<div class="loader">${mascota('lg')}Cargando catálogo…</div>`;
-  const conf = FIREBASE_CONFIG || cfg.fb, falla = m => $('#main').innerHTML = `<div class="card login">${mascota('lg', 'sad')}<h2>Catálogo no disponible</h2><p>${esc(m)}</p></div>`;
+  const conf = FIREBASE_CONFIG || cfg.fb, falla = (m, reintentar) => $('#main').innerHTML = `<div class="card login">${mascota('lg', 'sad')}<h2>Catálogo no disponible</h2><p>${esc(m)}</p>
+    ${reintentar ? '<button class="btn pri" onclick="location.reload()">🔄 Reintentar</button>' : ''}</div>`;
   if (!conf) return falla('Esta tienda aún no tiene catálogo en línea.');
+  let F, db, listo = false;
+  const lento = setTimeout(() => { if (!listo) $('#main .loader')?.insertAdjacentHTML('beforeend', '<p class="meta">La conexión está lenta… seguimos intentando 📶</p>'); }, 8000);
   try {
     const base = `https://www.gstatic.com/firebasejs/${FIREBASE_SDK}/`;
-    const [A, F] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-firestore.js')]);
-    const db = F.getFirestore(A.initializeApp(conf, 'catalogo'));
-    Object.assign(S, { catF: F, catDb: db, catMedia: new Map() });
-    const err = e => falla(e.code === 'permission-denied' ? 'El catálogo aún no está publicado.' : e.message);
-    let listo = 0; const pinta = () => { if (listo === 3) renderCatalogo(); };
-    F.onSnapshot(F.doc(db, 'catalogo', '_tienda'), s => { S.catTienda = s.data() || {}; if (NOMBRES_AV[S.catTienda.avatar]) cfg.avatar = S.catTienda.avatar; listo |= 1; pinta(); }, err);
-    F.onSnapshot(F.query(F.collection(db, 'catalogo'), F.where('tipo', 'in', ['set', 'individual'])), s => {
-      S.productos = new Map(s.docs.map(d => desdePub(d.data())).map(p => [p.id, p])); listo |= 2; pinta();
-    }, err);
-  } catch (e) { falla('Revisa tu conexión a internet.'); }
+    const [A, FL] = await Promise.all([import(base + 'firebase-app.js'), import(base + 'firebase-firestore-lite.js')]);
+    F = FL; db = F.getFirestore(A.initializeApp(conf, 'catalogo'));
+  } catch (e) { clearTimeout(lento); return falla('No se pudo conectar. Revisa tu conexión a internet.', true); }
+  Object.assign(S, { catF: F, catDb: db, catMedia: new Map() });
+  const cargar = async () => {
+    const [t, ps] = await Promise.all([F.getDoc(F.doc(db, 'catalogo', '_tienda')), F.getDocs(F.query(F.collection(db, 'catalogo'), F.where('tipo', 'in', ['set', 'individual'])))]);
+    S.catTienda = t.data() || {}; if (NOMBRES_AV[S.catTienda.avatar]) cfg.avatar = S.catTienda.avatar;
+    S.productos = new Map(ps.docs.map(d => desdePub(d.data())).map(p => [p.id, p]));
+    listo = true; renderCatalogo(); if (S.sheet?.live) drawSheet();
+  };
+  for (let i = 0; i < 3 && !listo; i++) {
+    try { await cargar(); }
+    catch (e) {
+      if (e.code === 'permission-denied') { clearTimeout(lento); return falla('El catálogo aún no está publicado.'); }
+      if (i === 2) { clearTimeout(lento); return falla('No pudimos cargar el catálogo. Revisa tu señal e intenta de nuevo.', true); }
+      await new Promise(r => setTimeout(r, 1500 * (i + 1)));
+    }
+  }
+  clearTimeout(lento);
+  const refrescar = () => { if (document.visibilityState === 'visible' && !S.sheet) cargar().catch(() => {}); };
+  setInterval(refrescar, 90000); document.addEventListener('visibilitychange', refrescar);
 }
 /* Catálogo web: mismo lenguaje visual que el PDF ("Candy Ledger"), en una sola página continua, con carrito */
 const MEDIA = id => id + '__f', MEDIA_PZ = (id, i) => `${id}__z${i}`, MEDIA_G = (id, k) => `${id}__g${k}`;
